@@ -6,7 +6,15 @@ file(GLOB_RECURSE HEADERS "*.h")
 list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
 
 # 3. 定义可执行程序，手动加上 main.cpp 确保它是入口
-add_executable(DatabaseKnowledgeGraph main.cpp ${SOURCES} ${HEADERS})
+add_executable(DatabaseKnowledgeGraph main.cpp ${SOURCES} ${HEADERS}
+        database/NodeRepository.h
+        database/NodeRepository.cpp
+        database/OntologyRepository.h
+        database/OntologyRepository.cpp
+        database/RelationshipRepository.h
+        database/RelationshipRepository.cpp
+        database/AttributeRepository.h
+        database/AttributeRepository.cpp)
 
 # 4. 统一链接 Qt5 模块
 target_link_libraries(DatabaseKnowledgeGraph PRIVATE

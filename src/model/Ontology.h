@@ -13,7 +13,7 @@ public:
     QDateTime createdAt;
     QDateTime updatedAt;
 
-    Ontology() : id(-1) {}
+    Ontology() : id(-1), version("1.0") {}
 };
 
 #endif
