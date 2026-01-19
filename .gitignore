@@ -1,0 +1,15 @@
+# 忽略 CMake 编译产生的中间文件
+/cmake-build-*/
+/build/
+.cmake/
+
+# 忽略 CLion 产生的私人设置
+.idea/
+
+# 忽略 Qt Creator 产生的私人文件
+*.user
+
+# 忽略编译生成的二进制程序
+DatabaseKnowledgeGraph
+*.o
+*.obj
