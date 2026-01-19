@@ -1,16 +1,14 @@
-# 1. 自动递归搜寻 src 目录下所有子文件夹中的 .cpp 和 .h 文件
-# 这样当你以后在 ui/ 或 database/ 文件夹增加代码时，不需要手动改 CMake
-file(GLOB_RECURSE SOURCES "*.cpp" "ui/*.cpp" "database/*.cpp" "model/*.cpp" "business/*.cpp" "visualization/*.cpp" "utils/*.cpp")
-file(GLOB_RECURSE HEADERS "*.h" "ui/*.h" "database/*.h" "model/*.h" "business/*.h" "visualization/*.h" "utils/*.h")
+# 1. 自动搜索当前目录及子目录下所有源文件和头文件
+file(GLOB_RECURSE SOURCES "*.cpp")
+file(GLOB_RECURSE HEADERS "*.h")
 
-# 2. 定义可执行程序目标，包含入口 main.cpp 和搜寻到的所有源码
-add_executable(DatabaseKnowledgeGraph main.cpp ${SOURCES} ${HEADERS}
-        model/Ontology.h
-        model/GraphNode.h
-        model/GraphEdge.h
-        model/Attribute.h)
+# 2. 移除 main.cpp，因为我们要单独处理它，防止自动搜寻导致重复
+list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
 
-# 3. 链接 Qt 的核心模块和数据库模块
+# 3. 定义可执行程序，手动加上 main.cpp 确保它是入口
+add_executable(DatabaseKnowledgeGraph main.cpp ${SOURCES} ${HEADERS})
+
+# 4. 统一链接 Qt5 模块
 target_link_libraries(DatabaseKnowledgeGraph PRIVATE
         Qt5::Core
         Qt5::Gui

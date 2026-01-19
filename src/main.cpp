@@ -1,36 +1,37 @@
-#include <QCoreApplication> // 修改这里
-#include <QSqlDatabase>
-#include <QSqlError>
+#include <QCoreApplication>
 #include <QDebug>
+#include "database/DatabaseConnection.h"
 
-int main(int argc, char *argv[]) {
-    // 1. 使用核心应用类，不需要图形界面
+int main(int argc, char *argv[])
+{
     QCoreApplication a(argc, argv);
 
-    qDebug() << "=== 数据库驱动联调检查 ===";
+    // 1. 初始化配置信息
+    DatabaseConfig config;
+    config.hostname = "192.168.137.129";
+    config.username = "root";
+    config.password = "123456";
+    config.database = "DatabaseKnowledgeGraph";
+    config.port = 3306;
 
-    // 2. 检查 QMYSQL 驱动
-    if (!QSqlDatabase::isDriverAvailable("QMYSQL")) {
-        qDebug() << "❌ 错误：找不到 QMYSQL 驱动！";
-        qDebug() << "可用驱动列表：" << QSqlDatabase::drivers();
-    } else {
-        qDebug() << "✅ 成功：QMYSQL 驱动已就绪！";
+    // 2. 尝试建立连接
+    qDebug() << "正在尝试连接数据库...";
+    if (DatabaseConnection::connect(config)) {
+        qDebug() << "-----------------------------------------";
+        qDebug() << "测试成功: 数据库已就绪！";
 
-        // 3. 测试连接
-        QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
-        db.setHostName("127.0.0.1");
-        db.setDatabaseName("mysql");
-        db.setUserName("root");
-        db.setPassword("123456"); // ⬅️ 确保这是你的密码
-
-        if (db.open()) {
-            qDebug() << "✅ 成功：已连接到 MySQL！";
-            db.close();
-        } else {
-            qDebug() << "⚠️ 无法登录：" << db.lastError().text();
+        // 验证连接对象是否真的可用
+        QSqlDatabase db = DatabaseConnection::getDatabase();
+        if (db.isOpen()) {
+            qDebug() << "确认状态: 连接名 [KG_CONN] 处于开启状态。";
+            qDebug() << "当前驱动:" << db.driverName();
         }
+        qDebug() << "-----------------------------------------";
+    } else {
+        qDebug() << "测试失败: 请检查网络、防火墙或 MySQL 服务状态。";
     }
 
-    // 直接退出，不进入事件循环
+    // 毕设初期阶段，我们可以执行完测试直接退出，或者保持事件循环
+    // return a.exec();
     return 0;
 }
