@@ -4,7 +4,11 @@ file(GLOB_RECURSE SOURCES "*.cpp" "ui/*.cpp" "database/*.cpp" "model/*.cpp" "bus
 file(GLOB_RECURSE HEADERS "*.h" "ui/*.h" "database/*.h" "model/*.h" "business/*.h" "visualization/*.h" "utils/*.h")
 
 # 2. 定义可执行程序目标，包含入口 main.cpp 和搜寻到的所有源码
-add_executable(DatabaseKnowledgeGraph main.cpp ${SOURCES} ${HEADERS})
+add_executable(DatabaseKnowledgeGraph main.cpp ${SOURCES} ${HEADERS}
+        model/Ontology.h
+        model/GraphNode.h
+        model/GraphEdge.h
+        model/Attribute.h)
 
 # 3. 链接 Qt 的核心模块和数据库模块
 target_link_libraries(DatabaseKnowledgeGraph PRIVATE
