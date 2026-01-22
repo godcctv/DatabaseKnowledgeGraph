@@ -14,7 +14,10 @@ add_executable(DatabaseKnowledgeGraph main.cpp ${SOURCES} ${HEADERS}
         database/RelationshipRepository.h
         database/RelationshipRepository.cpp
         database/AttributeRepository.h
-        database/AttributeRepository.cpp)
+        database/AttributeRepository.cpp
+        business/EditorCommand.h
+        business/GraphEditor.h
+        business/GraphEditor.cpp)
 
 # 4. 统一链接 Qt5 模块
 target_link_libraries(DatabaseKnowledgeGraph PRIVATE
