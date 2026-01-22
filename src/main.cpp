@@ -1,85 +1,128 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QJsonObject>
+#include <cassert>
 #include "database/DatabaseConnection.h"
-#include "database/OntologyRepository.h"
 #include "database/NodeRepository.h"
 #include "database/RelationshipRepository.h"
-#include "database/AttributeRepository.h"
+#include "database/OntologyRepository.h"
+#include "business/GraphEditor.h"
 
-void runHeavyDutyTest() {
-    qDebug() << "==================== 开始增强版压力测试 ====================";
+/**
+ * @brief 运行逻辑健壮性测试
+ * 专门验证报告中提到的：空指针处理、级联删除、参数验证及 JSON 安全性
+ */
+void runRobustnessTest() {
+    qDebug() << "\n" << "==================== 开始逻辑健壮性测试 ====================";
+    GraphEditor editor;
 
-    // 1. 获取或创建一个干净的测试本体
-    QString testName = "压力测试项目";
-    Ontology testOnt;
+    // 1. 准备测试环境：获取一个有效的本体 ID
+    QList<Ontology> onts = OntologyRepository::getAllOntologies();
+    if (onts.isEmpty()) {
+        qCritical() << "❌ 测试中止: 数据库中没有本体，请先创建。";
+        return;
+    }
+    int testOntId = onts.first().id;
 
-    // 先检查是否存在同名项目，存在就先删掉（为了保证每次测试都是从零开始）
-    QList<Ontology> all = OntologyRepository::getAllOntologies();
-    for(const auto& o : all) {
-        if(o.name == testName) {
-            OntologyRepository::deleteOntology(o.id);
-            qDebug() << "🧹 清理了旧的测试项目";
+    // --- 场景 1: 验证字段完整性与有效性判断 (修复问题 1 & 1a) ---
+    qDebug() << "👉 场景1: 测试 getNodeById() 的字段完整映射与 isValid()...";
+    GraphNode nodeA;
+    nodeA.ontologyId = testOntId;
+    nodeA.name = "完整性测试节点";
+    nodeA.nodeType = "Test";
+    nodeA.description = "测试描述";
+    nodeA.posX = 100.5f;
+    nodeA.properties["status"] = "online";
+
+    if (editor.addNode(nodeA)) {
+        GraphNode retrieved = NodeRepository::getNodeById(nodeA.id);
+        if (retrieved.isValid() && !retrieved.properties.isEmpty() && retrieved.posX > 100.0f) {
+            qDebug() << "✅ 修复成功: 节点所有字段（含坐标和JSON）已完整映射。";
+        } else {
+            qCritical() << "❌ 修复失败: 获取到的对象不完整或 isValid() 判定错误。";
         }
     }
 
-    testOnt.name = testName;
-    testOnt.version = "1.0";
-    testOnt.description = "用于压力测试";
-    OntologyRepository::addOntology(testOnt);
-    int testOntId = testOnt.id;
+    // --- 场景 2: 验证级联删除逻辑 (修复问题 1b) ---
+    qDebug() << "\n👉 场景2: 测试级联删除（删除节点及其关联关系）...";
+    // 创建节点 B 并建立与 A 的关系
+    GraphNode nodeB;
+    nodeB.ontologyId = testOntId;
+    nodeB.name = "关联节点B";
+    nodeB.nodeType = "Test";
+    editor.addNode(nodeB);
 
-    // 2. 测试插入数据（确保所有 NOT NULL 字段都有值）
-    qDebug() << "👉 测试2: 模拟大规模节点生成...";
-    for (int i = 0; i < 10; ++i) {
-        GraphNode n;
-        n.ontologyId = testOntId;
-        n.name = QString("节点_%1").arg(i);
-        n.nodeType = "核心概念";  // 必填字段1
-        n.description = "测试描述"; // 必填字段2
-        n.posX = i * 50.0f;
-        n.posY = i * 50.0f;
+    GraphEdge edge;
+    edge.ontologyId = testOntId;
+    edge.sourceId = nodeA.id;
+    edge.targetId = nodeB.id;
+    edge.relationType = "Dependency";
+    editor.addRelationship(edge);
 
-        if(!NodeRepository::addNode(n)) {
-            qCritical() << "❌ 节点" << i << "插入失败，原因:" << "请检查是否有其他非空字段";
+    // 执行级联删除
+    if (editor.deleteNode(nodeA.id)) {
+        // 验证数据库中该关系是否已消失
+        auto edges = RelationshipRepository::getEdgesByNode(nodeA.id);
+        if (edges.isEmpty()) {
+            qDebug() << "✅ 修复成功: 删除节点时，关联关系已同步清理。";
         }
     }
 
-    // 3. 读取验证
-    QList<GraphNode> nodes = NodeRepository::getAllNodes(testOntId);
-    qDebug() << "✅ 批量读取成功，当前节点总数:" << nodes.size();
+    // --- 场景 3: 验证输入参数校验 (修复问题 5) ---
+    qDebug() << "\n👉 场景3: 测试无效输入拦截...";
+    GraphNode invalidNode;
+    invalidNode.name = ""; // 名字为空
+    invalidNode.ontologyId = -1; // 无效 ID
 
-    // 4. 测试重复插入（验证唯一性约束是否生效）
-    qDebug() << "👉 测试4: 验证唯一性约束（预期应报错）...";
-    GraphNode dup;
-    dup.ontologyId = testOntId;
-    dup.name = "节点_0"; // 重复的名字
-    dup.nodeType = "核心概念";
-    if (!NodeRepository::addNode(dup)) {
-        qDebug() << "✅ 数据库成功拦截了重复数据，约束逻辑正确！";
+    if (!editor.addNode(invalidNode)) {
+        qDebug() << "✅ 修复成功: 业务层成功拦截了无效的节点数据。";
     }
 
-    qDebug() << "==================== 测试结束 ====================";
+    // --- 场景 4: 验证更新操作的返回值检查 (修复问题 1c) ---
+    qDebug() << "\n👉 场景4: 测试 updateNode() 的 numRowsAffected 检查...";
+    GraphNode phantomNode;
+    phantomNode.id = 999999; // 不存在的 ID
+    phantomNode.name = "幽灵节点";
+    phantomNode.ontologyId = testOntId;
+
+    if (!NodeRepository::updateNode(phantomNode)) {
+        qDebug() << "✅ 修复成功: 更新不存在的节点返回 false，未产生误报。";
+    }
+
+    // --- 场景 5: 验证 JSON 编码安全性与中文处理 (修复问题 6) ---
+    qDebug() << "\n👉 场景5: 测试中文 JSON 属性存储安全性...";
+    GraphNode chineseNode;
+    chineseNode.ontologyId = testOntId;
+    chineseNode.name = "中文测试";
+    chineseNode.nodeType = "Encoding";
+    chineseNode.properties["备注"] = "这是一段带有特殊字符'\"的中文描述"; //
+
+    if (editor.addNode(chineseNode)) {
+        GraphNode retrieved = NodeRepository::getNodeById(chineseNode.id);
+        if (retrieved.properties["备注"].toString() == chineseNode.properties["备注"].toString()) {
+            qDebug() << "✅ 修复成功: 中文及特殊字符在 JSON 中序列化正常。";
+        }
+    }
+
+    qDebug() << "\n==================== 逻辑健壮性测试全部完成 ====================\n";
 }
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    // 数据库连接配置
     DatabaseConfig config;
-    config.hostname = "192.168.137.129"; // 确保此IP与虚拟机一致
+    config.hostname = "192.168.137.129";
     config.username = "root";
     config.password = "123456";
     config.database = "DatabaseKnowledgeGraph";
     config.port = 3306;
 
     if (DatabaseConnection::connect(config)) {
-        runHeavyDutyTest();
+        runRobustnessTest();
     } else {
         qCritical() << "无法启动测试: 数据库连接失败。";
     }
 
-    // 测试完毕后，我们直接退出程序，不进入事件循环
-    return 0;
+    return 0; // 直接退出，不进入事件循环
 }

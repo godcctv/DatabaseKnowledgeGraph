@@ -18,6 +18,10 @@ public:
 
     GraphNode() : id(-1), ontologyId(-1), posX(0.0f), posY(0.0f), color("#3498db") {}
 
+    bool isValid() const {
+        return id > 0 && ontologyId > 0 && !name.isEmpty() && !nodeType.isEmpty();
+        }
+
     QJsonObject toJson() const;
     static GraphNode fromJson(const QJsonObject& json);
 };

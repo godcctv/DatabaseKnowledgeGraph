@@ -26,10 +26,34 @@ public:
 
 class DeleteNodeCommand : public EditorCommand {
     GraphNode m_backup;
+    QList<GraphEdge> m_relatedEdges;  // ===== 修复问题3: 保存级联删除的关系 =====
+
 public:
+    // 旧构造函数（兼容性）
     DeleteNodeCommand(const GraphNode& node) : m_backup(node) {}
-    void execute() override { NodeRepository::deleteNode(m_backup.id); }
-    void undo() override { NodeRepository::addNode(m_backup); }
+
+    // 新构造函数（包含级联信息）
+    DeleteNodeCommand(const GraphNode& node, const QList<GraphEdge>& edges)
+        : m_backup(node), m_relatedEdges(edges) {}
+
+    void execute() override {
+        // 删除所有关联的关系
+        for (const auto& edge : m_relatedEdges) {
+            RelationshipRepository::deleteRelationship(edge.id);
+        }
+        // 删除节点本身
+        NodeRepository::deleteNode(m_backup.id);
+    }
+
+    void undo() override {
+        // 恢复节点
+        NodeRepository::addNode(m_backup);
+        // 恢复所有关联的关系
+        for (const auto& edge : m_relatedEdges) {
+            GraphEdge temp = edge;
+            RelationshipRepository::addRelationship(temp);
+        }
+    }
 };
 
 class UpdateNodeCommand : public EditorCommand {
@@ -49,6 +73,18 @@ public:
     AddEdgeCommand(const GraphEdge& edge) : m_edge(edge) {}
     void execute() override { RelationshipRepository::addRelationship(m_edge); }
     void undo() override { RelationshipRepository::deleteRelationship(m_edge.id); }
+};
+
+// ===== 修复完整性: 添加缺失的DeleteEdgeCommand =====
+class DeleteEdgeCommand : public EditorCommand {
+    GraphEdge m_backup;
+public:
+    DeleteEdgeCommand(const GraphEdge& edge) : m_backup(edge) {}
+    void execute() override { RelationshipRepository::deleteRelationship(m_backup.id); }
+    void undo() override {
+        GraphEdge temp = m_backup;
+        RelationshipRepository::addRelationship(temp);
+    }
 };
 
 #endif
