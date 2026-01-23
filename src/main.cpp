@@ -7,7 +7,65 @@
 #include "database/RelationshipRepository.h"
 #include "database/OntologyRepository.h"
 #include "business/GraphEditor.h"
+#include "business/QueryEngine.h"
 
+
+void runBusinessLogicTest() {
+    qDebug() << "\n==================== 开始业务逻辑深度测试 ====================";
+    GraphEditor editor;
+    QueryEngine queryEngine;
+
+    // 1. 环境准备
+    QList<Ontology> onts = OntologyRepository::getAllOntologies();
+    if (onts.isEmpty()) return;
+    int testOntId = onts.first().id;
+
+    // 🚩 关键修复：清理旧数据，防止 Duplicate Entry
+    QList<GraphNode> existingNodes = NodeRepository::getAllNodes(testOntId);
+    for (const auto& n : existingNodes) {
+        if (n.name == "节点1" || n.name == "节点2" || n.name == "节点3") {
+            NodeRepository::deleteNode(n.id);
+        }
+    }
+
+    // --- 场景 6: 测试撤销/重做 ---
+    GraphNode node1;
+    node1.ontologyId = testOntId;
+    node1.name = "节点1";
+    node1.nodeType = "Logic";
+
+    if (editor.addNode(node1)) {
+        editor.undo();
+        // 验证撤销...
+        editor.redo();
+
+        // 🚩 关键修复：Redo 后 ID 会变，必须同步
+        QList<GraphNode> currentNodes = NodeRepository::getAllNodes(testOntId);
+        for (const auto& n : currentNodes) {
+            if (n.name == "节点1") { node1 = n; break; }
+        }
+    }
+
+    // --- 场景 7: 测试路径查询 ---
+    GraphNode node2, node3;
+    node2.ontologyId = testOntId; node2.name = "节点2"; node2.nodeType = "Logic";
+    node3.ontologyId = testOntId; node3.name = "节点3"; node3.nodeType = "Logic";
+
+    // 确保节点添加成功后再进行后续操作
+    if (editor.addNode(node2) && editor.addNode(node3)) {
+        GraphEdge edge1, edge2;
+        edge1.ontologyId = testOntId; edge1.sourceId = node1.id; edge1.targetId = node2.id;
+        edge1.relationType = "Connect";
+
+        edge2.ontologyId = testOntId; edge2.sourceId = node2.id; edge2.targetId = node3.id;
+        edge2.relationType = "Connect";
+
+        if (editor.addRelationship(edge1) && editor.addRelationship(edge2)) {
+            QList<int> path = queryEngine.findPath(node1.id, node3.id);
+            // 验证路径...
+        }
+    }
+}
 /**
  * @brief 运行逻辑健壮性测试
  * 专门验证报告中提到的：空指针处理、级联删除、参数验证及 JSON 安全性
@@ -119,7 +177,7 @@ int main(int argc, char *argv[])
     config.port = 3306;
 
     if (DatabaseConnection::connect(config)) {
-        runRobustnessTest();
+        runBusinessLogicTest();
     } else {
         qCritical() << "无法启动测试: 数据库连接失败。";
     }

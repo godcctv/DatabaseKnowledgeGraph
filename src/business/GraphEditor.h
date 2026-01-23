@@ -36,7 +36,7 @@ public:
 
     signals:
         // 信号：当业务层完成操作时，通知 UI 层（可视化视图和属性面板）进行同步
-        void nodeAdded(const GraphNode& node);
+    void nodeAdded(const GraphNode& node);
     void nodeDeleted(int nodeId);
     void relationshipAdded(const GraphEdge& edge);
     void relationshipDeleted(int edgeId);
