@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QGraphicsScene>
 #include "../business/GraphEditor.h" // 引入业务层
 
 QT_BEGIN_NAMESPACE
@@ -16,9 +17,19 @@ public:
 
 private slots:
     void updateStatusBar(); // 用于显示数据库状态
+    void onActionAddNodeTriggered(); // 响应添加
+    void onNodeAdded(const GraphNode& node);
+
+    void onActionDeleteTriggered();       // 响应删除
+    void onNodeDeleted(int nodeId);
+
+    void onGraphChanged(); // 响应图数据变化
 
 private:
     Ui::MainWindow *ui;
-    GraphEditor *m_graphEditor; // 关联业务层
+    GraphEditor *m_graphEditor;
+    QGraphicsScene *m_scene;
+
+    void setupConnections();
 };
 #endif
