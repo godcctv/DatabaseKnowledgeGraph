@@ -32,8 +32,10 @@ QList<GraphNode> QueryEngine::queryByAttribute(const QString& attrName, const QS
 
     for (const auto& attr : attrs) {
         if (attr.attrName == attrName && attr.attrValue == attrValue) {
-            GraphNode node = NodeRepository::getNodeById(attr.entityId);
-            if (node.isValid()) results.append(node);
+            if (attr.nodeId > 0) {
+                GraphNode node = NodeRepository::getNodeById(attr.nodeId);
+                if (node.isValid()) results.append(node);
+            }
         }
     }
     return results;

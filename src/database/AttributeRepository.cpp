@@ -9,12 +9,20 @@ bool AttributeRepository::addAttribute(Attribute& attr) {
     QSqlDatabase db = DatabaseConnection::getDatabase();
     QSqlQuery query(db);
 
-    // 对应 SQL: entity_type, entity_id, attr_name, attr_value, attr_type
-    query.prepare("INSERT INTO attribute (entity_type, entity_id, attr_name, attr_value, attr_type) "
-                  "VALUES (:type, :eid, :name, :val, :atyp)");
-    
-    query.bindValue(":type", attr.entityType); // 传入 "NODE" 或 "RELATION"
-    query.bindValue(":eid", attr.entityId);
+    query.prepare("INSERT INTO attribute (node_id, relation_id, attr_name, attr_value, attr_type) "
+                  "VALUES (:nid, :rid, :name, :val, :atyp)");
+
+    if (attr.nodeId > 0) {
+        query.bindValue(":nid", attr.nodeId);
+        query.bindValue(":rid", QVariant(QVariant::Int)); // 写入 SQL NULL
+    } else if (attr.relationId > 0) {
+        query.bindValue(":nid", QVariant(QVariant::Int)); // 写入 SQL NULL
+        query.bindValue(":rid", attr.relationId);
+    } else {
+        qWarning() << "AttributeRepository: 属性必须关联到一个节点或关系";
+        return false;
+    }
+
     query.bindValue(":name", attr.attrName);
     query.bindValue(":val", attr.attrValue);
     query.bindValue(":atyp", attr.attrType);
@@ -33,16 +41,26 @@ QList<Attribute> AttributeRepository::getAttributesForEntity(const QString& enti
     QSqlDatabase db = DatabaseConnection::getDatabase();
     QSqlQuery query(db);
 
-    query.prepare("SELECT * FROM attribute WHERE entity_type = :type AND entity_id = :eid");
-    query.bindValue(":type", entityType);
-    query.bindValue(":eid", entityId);
+    if (entityType == "NODE") {
+        query.prepare("SELECT * FROM attribute WHERE node_id = :id");
+    } else if (entityType == "RELATION") {
+        query.prepare("SELECT * FROM attribute WHERE relation_id = :id");
+    } else {
+        qWarning() << "AttributeRepository: 未知的实体类型" << entityType;
+        return attributes;
+    }
+
+    query.bindValue(":id", entityId);
 
     if (query.exec()) {
         while (query.next()) {
             Attribute attr;
             attr.id = query.value("attr_id").toInt();
-            attr.entityType = query.value("entity_type").toString();
-            attr.entityId = query.value("entity_id").toInt();
+            // 从数据库读取 node_id 和 relation_id
+            // value().toInt() 如果是 NULL 会返回 0，这里我们可以视为 -1 或 0 处理
+            attr.nodeId = query.value("node_id").isNull() ? -1 : query.value("node_id").toInt();
+            attr.relationId = query.value("relation_id").isNull() ? -1 : query.value("relation_id").toInt();
+
             attr.attrName = query.value("attr_name").toString();
             attr.attrValue = query.value("attr_value").toString();
             attr.attrType = query.value("attr_type").toString();
@@ -54,22 +72,23 @@ QList<Attribute> AttributeRepository::getAttributesForEntity(const QString& enti
     return attributes;
 }
 
-
 QList<Attribute> AttributeRepository::getAllAttributesByType(const QString& entityType) {
     QList<Attribute> attributes;
     QSqlDatabase db = DatabaseConnection::getDatabase();
     QSqlQuery query(db);
 
-    //去掉 entity_id 的过滤，获取所有该类型（如 NODE）的属性
-    query.prepare("SELECT * FROM attribute WHERE entity_type = :type");
-    query.bindValue(":type", entityType);
+    if (entityType == "NODE") {
+        query.prepare("SELECT * FROM attribute WHERE node_id IS NOT NULL");
+    } else {
+        query.prepare("SELECT * FROM attribute WHERE relation_id IS NOT NULL");
+    }
 
     if (query.exec()) {
         while (query.next()) {
             Attribute attr;
             attr.id = query.value("attr_id").toInt();
-            attr.entityType = query.value("entity_type").toString();
-            attr.entityId = query.value("entity_id").toInt();
+            attr.nodeId = query.value("node_id").isNull() ? -1 : query.value("node_id").toInt();
+            attr.relationId = query.value("relation_id").isNull() ? -1 : query.value("relation_id").toInt();
             attr.attrName = query.value("attr_name").toString();
             attr.attrValue = query.value("attr_value").toString();
             attr.attrType = query.value("attr_type").toString();
@@ -102,9 +121,13 @@ bool AttributeRepository::updateAttribute(const Attribute& attr) {
 bool AttributeRepository::deleteAttributesByEntity(const QString& entityType, int entityId) {
     QSqlDatabase db = DatabaseConnection::getDatabase();
     QSqlQuery query(db);
-    query.prepare("DELETE FROM attribute WHERE entity_type = :type AND entity_id = :eid");
-    query.bindValue(":type", entityType);
-    query.bindValue(":eid", entityId);
+
+    if (entityType == "NODE") {
+        query.prepare("DELETE FROM attribute WHERE node_id = :id");
+    } else {
+        query.prepare("DELETE FROM attribute WHERE relation_id = :id");
+    }
+
+    query.bindValue(":id", entityId);
     return query.exec();
 }
-

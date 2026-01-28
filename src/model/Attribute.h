@@ -1,3 +1,4 @@
+// src/model/Attribute.h
 #ifndef ATTRIBUTE_H
 #define ATTRIBUTE_H
 
@@ -5,14 +6,18 @@
 
 class Attribute {
 public:
-    int id;                 // 对应 attr_id
-    QString entityType;     // 对应 entity_type (NODE 或 RELATION)
-    int entityId;           // 对应 entity_id
-    QString attrName;       // 对应 attr_name
-    QString attrValue;      // 对应 attr_value
-    QString attrType;       // 对应 attr_type
+    int id;
+    int nodeId;
+    int relationId;
+    QString attrName;
+    QString attrValue;
+    QString attrType;
 
-    Attribute() : id(-1), entityId(-1) {}
+    Attribute() : id(-1), nodeId(-1), relationId(-1) {}
+
+
+    bool isNodeAttribute() const { return nodeId > 0; }
+    bool isRelationAttribute() const { return relationId > 0; }
 };
 
 #endif
