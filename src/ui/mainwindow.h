@@ -30,6 +30,7 @@ private:
     GraphEditor *m_graphEditor;
     QGraphicsScene *m_scene;
 
+    void loadInitialData();
     void setupConnections();
 };
 #endif

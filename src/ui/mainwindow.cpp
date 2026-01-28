@@ -4,6 +4,7 @@
 #include <QGraphicsTextItem>
 #include "../database/DatabaseConnection.h"
 #include <QDebug>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -23,10 +24,26 @@ MainWindow::MainWindow(QWidget *parent)
     // 4. 建立连接
     setupConnections();
     updateStatusBar();
+
+    if (DatabaseConnection::isConnected()) {
+        loadInitialData();
+    }
 }
 
 MainWindow::~MainWindow() {
     delete ui;
+}
+
+void MainWindow::loadInitialData() {
+    // 1. 获取 ID=1 的本体下的所有节点 (假设我们目前只操作本体1)
+
+    QList<GraphNode> nodes = NodeRepository::getAllNodes(1);
+
+    for (const auto& node : nodes) {
+        onNodeAdded(node);
+    }
+
+    ui->statusbar->showMessage(QString("已加载 %1 个节点").arg(nodes.size()));
 }
 
 void MainWindow::setupConnections() {
@@ -43,15 +60,16 @@ void MainWindow::setupConnections() {
 
 // 用户点击“添加节点”按钮
 void MainWindow::onActionAddNodeTriggered() {
-    // 1. 弹出对话框
     AddNodeDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
-        // 2. 获取数据
         GraphNode newNode = dialog.getNodeData();
-        newNode.ontologyId = 1; // 暂时写死，后续从项目设置中获取
+        newNode.ontologyId = 1;
 
-        // 3. 调用后端添加 (后端会负责写数据库 + 发信号)
-        m_graphEditor->addNode(newNode);
+        // 🔥 修改：根据返回值判断是否成功 🔥
+        if (!m_graphEditor->addNode(newNode)) {
+            QMessageBox::warning(this, "添加失败",
+                "无法添加节点！可能是节点名称已存在。\n请尝试更换名称。");
+        }
     }
 }
 
@@ -59,68 +77,89 @@ void MainWindow::onActionDeleteTriggered() {
     // 1. 获取右侧列表选中的项
     QList<QTreeWidgetItem*> selectedItems = ui->propertyPanel->selectedItems();
     if (selectedItems.isEmpty()) {
-        ui->statusbar->showMessage("请先在右侧列表中选择一个节点", 2000);
+        ui->statusbar->showMessage("请先在右侧列表中选中一个节点", 2000);
         return;
     }
-    // 2. 获取 ID
+
+    // 2. 获取 ID (第0列是 ID)
     int nodeId = selectedItems.first()->text(0).toInt();
+
+    qDebug() << "请求删除节点 ID:" << nodeId;
+
     // 3. 调用后端删除
-    m_graphEditor->deleteNode(nodeId);
+    // 后端成功后会 emit nodeDeleted(nodeId)，从而触发上面的 onNodeDeleted
+    if (!m_graphEditor->deleteNode(nodeId)) {
+        ui->statusbar->showMessage("删除失败，请检查控制台日志", 3000);
+    }
 }
 
+// src/ui/mainwindow.cpp
+
 void MainWindow::onNodeAdded(const GraphNode& node) {
-    // 1. 更新右侧列表
+    // 1. 安全检查：如果 UI 或 场景还没初始化，直接退出，防止崩溃
+    if (!ui || !ui->propertyPanel || !m_scene) {
+        qWarning() << "onNodeAdded 被调用，但 UI 或 m_scene 未初始化，跳过绘制";
+        return;
+    }
+
+    // 2. 添加到右侧列表
     QTreeWidgetItem *item = new QTreeWidgetItem(ui->propertyPanel);
     item->setText(0, QString::number(node.id));
     item->setText(1, node.name);
     item->setText(2, node.nodeType);
 
-    // 2. 更新绘图区
-    // 画圆
+    // 3. 在画布上画圆
     auto ellipse = m_scene->addEllipse(node.posX, node.posY, 50, 50, QPen(Qt::black), QBrush(Qt::cyan));
 
+    // 存入 ID，为了以后能删除它
     ellipse->setData(0, node.id);
-    // 让圆圈可选择、可移动（为后面铺路）
+    // 让圆圈可以被鼠标选中和拖动
     ellipse->setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsMovable);
 
-    // 画文字
+    // 4. 在圆圈中间画文字
     auto text = m_scene->addText(node.name);
-    text->setPos(node.posX, node.posY);
+    text->setPos(node.posX + 5, node.posY + 10); // 稍微偏移一点，居中显示
     text->setData(0, node.id); // 文字也存一下 ID
 
-    ui->statusbar->showMessage(QString("节点 %1 添加成功").arg(node.name), 3000);
+    // 5. 状态栏提示 (加个判断防止崩溃)
+    if (ui->statusbar) {
+        ui->statusbar->showMessage(QString("节点 %1 加载成功").arg(node.name), 3000);
+    }
 }
-
 void MainWindow::onNodeDeleted(int nodeId) {
     // --- 1. 安全删除右侧列表项 ---
-    // 倒序遍历是删除列表项最安全的方式（防止索引错位）
+    // 技巧：使用【倒序遍历】。
+    // 如果正序遍历，删除第0个后，第1个会变成第0个，索引就会乱，导致漏删或越界。
     for (int i = ui->propertyPanel->topLevelItemCount() - 1; i >= 0; --i) {
         QTreeWidgetItem *item = ui->propertyPanel->topLevelItem(i);
         if (item->text(0).toInt() == nodeId) {
-            delete ui->propertyPanel->takeTopLevelItem(i); // 使用 takeItem 彻底移除
-            break; // 找到后立即退出循环
+            delete ui->propertyPanel->takeTopLevelItem(i); // 彻底移除并释放内存
+            break; // 找到ID后立即退出循环，提高效率
         }
     }
 
-    // --- 2. 安全删除绘图场景项 (修复卡死问题的关键) ---
-    // 第一步：先找出所有需要删除的项，存到一个临时列表里
+    // --- 2. 安全删除绘图场景项 (修复卡死的关键) ---
+
+    // 第一步：先“只读”遍历，找出所有要删除的项，存到列表中
     QList<QGraphicsItem*> itemsToDelete;
     foreach (QGraphicsItem *item, m_scene->items()) {
-        // 检查 data(0) 是否匹配
+        // data(0) 是我们在 onNodeAdded 时存入的节点ID
         if (item->data(0).toInt() == nodeId) {
             itemsToDelete.append(item);
         }
     }
 
-    // 第二步：遍历临时列表进行删除
-    // 这样做避免了在 m_scene->items() 循环中直接修改场景结构
+    // 第二步：遍历临时列表进行真正的删除操作
     for (QGraphicsItem *item : itemsToDelete) {
-        m_scene->removeItem(item); // 从场景移除
+        m_scene->removeItem(item); // 从场景卸载
         delete item;               // 释放内存
     }
 
-    // 3. 提示信息
+    // 3. 状态栏提示
     ui->statusbar->showMessage(QString("节点 ID %1 已删除").arg(nodeId), 3000);
+
+    // 4. 强制刷新场景（防止有残影）
+    m_scene->update();
 }
 
 void MainWindow::onGraphChanged() {
