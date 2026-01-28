@@ -27,10 +27,9 @@ GraphNode QueryEngine::getNodeById(int nodeId) {
 
 QList<GraphNode> QueryEngine::queryByAttribute(const QString& attrName, const QString& attrValue) {
     QList<GraphNode> results;
-    // 1. 在属性表中查找匹配的记录
-    QList<Attribute> attrs = AttributeRepository::getAttributesForEntity("NODE", -1); // 逻辑简化：实际需结合 SQL 过滤
-    
-    // 注意：在实际毕设中，通常在 Repository 层写一个专门的 JOIN 查询 SQL 会更高
+
+    QList<Attribute> attrs = AttributeRepository::getAllAttributesByType("NODE");
+
     for (const auto& attr : attrs) {
         if (attr.attrName == attrName && attr.attrValue == attrValue) {
             GraphNode node = NodeRepository::getNodeById(attr.entityId);

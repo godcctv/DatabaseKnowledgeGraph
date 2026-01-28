@@ -45,12 +45,24 @@ public:
         NodeRepository::deleteNode(m_backup.id);
     }
 
+    // 找到 DeleteNodeCommand 类中的 undo 函数并修改如下：
     void undo() override {
-        // 恢复节点
-        NodeRepository::addNode(m_backup);
-        // 恢复所有关联的关系
+        // 1. 记录被删除时的旧 ID
+        int oldNodeId = m_backup.id;
+
+        // 2. 恢复节点。执行后，m_backup.id 会被更新为数据库生成的新 ID
+        if (!NodeRepository::addNode(m_backup)) {
+            return;
+        }
+        int newNodeId = m_backup.id;
+
+        //  3. 恢复所有关联的关系
         for (const auto& edge : m_relatedEdges) {
             GraphEdge temp = edge;
+            // 关键修复：如果关系中的起点或终点是刚才恢复的节点，则更新其 ID 为新 ID
+            if (temp.sourceId == oldNodeId) temp.sourceId = newNodeId;
+            if (temp.targetId == oldNodeId) temp.targetId = newNodeId;
+
             RelationshipRepository::addRelationship(temp);
         }
     }

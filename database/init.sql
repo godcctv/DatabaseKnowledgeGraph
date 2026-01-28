@@ -51,9 +51,15 @@ CREATE TABLE relationship (
 -- 4. 属性表
 CREATE TABLE attribute (
                            attr_id INT PRIMARY KEY AUTO_INCREMENT,
-                           entity_type ENUM('NODE', 'RELATION') NOT NULL,
-                           entity_id INT NOT NULL,
+                           node_id INT DEFAULT NULL,
+                           relation_id INT DEFAULT NULL,
                            attr_name VARCHAR(255) NOT NULL,
                            attr_value TEXT,
-                           attr_type VARCHAR(50)
+                           attr_type VARCHAR(50),
+                           FOREIGN KEY (node_id) REFERENCES node(node_id) ON DELETE CASCADE,
+                           FOREIGN KEY (relation_id) REFERENCES relationship(relation_id) ON DELETE CASCADE,
+                           CONSTRAINT chk_entity_source CHECK (
+                               (node_id IS NOT NULL AND relation_id IS NULL) OR
+                               (node_id IS NULL AND relation_id IS NOT NULL)
+                               )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

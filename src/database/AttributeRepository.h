@@ -23,6 +23,9 @@ public:
     // --- 查 ---
     // 获取指定实体（节点或关系）的所有扩展属性
     static QList<Attribute> getAttributesForEntity(const QString& entityType, int entityId);
+
+    // 在类中添加静态方法声明
+    static QList<Attribute> getAllAttributesByType(const QString& entityType);
 };
 
 #endif

@@ -54,6 +54,31 @@ QList<Attribute> AttributeRepository::getAttributesForEntity(const QString& enti
     return attributes;
 }
 
+
+QList<Attribute> AttributeRepository::getAllAttributesByType(const QString& entityType) {
+    QList<Attribute> attributes;
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    QSqlQuery query(db);
+
+    //去掉 entity_id 的过滤，获取所有该类型（如 NODE）的属性
+    query.prepare("SELECT * FROM attribute WHERE entity_type = :type");
+    query.bindValue(":type", entityType);
+
+    if (query.exec()) {
+        while (query.next()) {
+            Attribute attr;
+            attr.id = query.value("attr_id").toInt();
+            attr.entityType = query.value("entity_type").toString();
+            attr.entityId = query.value("entity_id").toInt();
+            attr.attrName = query.value("attr_name").toString();
+            attr.attrValue = query.value("attr_value").toString();
+            attr.attrType = query.value("attr_type").toString();
+            attributes.append(attr);
+        }
+    }
+    return attributes;
+}
+
 bool AttributeRepository::deleteAttribute(int attrId) {
     QSqlDatabase db = DatabaseConnection::getDatabase();
     QSqlQuery query(db);
@@ -82,3 +107,4 @@ bool AttributeRepository::deleteAttributesByEntity(const QString& entityType, in
     query.bindValue(":eid", entityId);
     return query.exec();
 }
+
