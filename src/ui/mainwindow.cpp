@@ -3,6 +3,7 @@
 #include "addnodedialog.h"
 #include <QGraphicsTextItem>
 #include "../database/DatabaseConnection.h"
+#include <QCoreApplication>
 #include <QDebug>
 #include <QMessageBox>
 
@@ -65,13 +66,14 @@ void MainWindow::onActionAddNodeTriggered() {
         GraphNode newNode = dialog.getNodeData();
         newNode.ontologyId = 1;
 
-        // 🔥 修改：根据返回值判断是否成功 🔥
         if (!m_graphEditor->addNode(newNode)) {
             QMessageBox::warning(this, "添加失败",
                 "无法添加节点！可能是节点名称已存在。\n请尝试更换名称。");
         }
     }
 }
+
+// 位于 src/ui/mainwindow.cpp
 
 void MainWindow::onActionDeleteTriggered() {
     // 1. 获取右侧列表选中的项
@@ -84,12 +86,28 @@ void MainWindow::onActionDeleteTriggered() {
     // 2. 获取 ID (第0列是 ID)
     int nodeId = selectedItems.first()->text(0).toInt();
 
-    qDebug() << "请求删除节点 ID:" << nodeId;
+    // 3. 【优化】给用户反馈，防止误以为卡死
+    ui->statusbar->showMessage(QString("正在请求数据库删除节点 %1...").arg(nodeId), 0);
 
-    // 3. 调用后端删除
-    // 后端成功后会 emit nodeDeleted(nodeId)，从而触发上面的 onNodeDeleted
-    if (!m_graphEditor->deleteNode(nodeId)) {
-        ui->statusbar->showMessage("删除失败，请检查控制台日志", 3000);
+    // 【关键】强制处理一下界面事件，让“正在删除...”这几个字能显示出来，而不是直接白屏
+    QCoreApplication::processEvents();
+
+    qDebug() << ">>> [UI] 准备调用后端删除接口, NodeID:" << nodeId;
+
+    // 4. 调用后端删除
+    // 如果数据库被锁住，这行代码可能会阻塞几秒钟
+    bool success = m_graphEditor->deleteNode(nodeId);
+
+    qDebug() << ">>> [UI] 后端返回结果:" << success;
+
+    // 5. 根据结果处理
+    if (!success) {
+        // 如果失败（比如超时或数据库错误），给个红色警告
+        ui->statusbar->showMessage("删除失败！可能是数据库繁忙或连接中断。", 5000);
+        QMessageBox::critical(this, "删除失败", "无法删除节点，请检查数据库连接或控制台日志。");
+    } else {
+        // 如果成功，onNodeDeleted 槽函数会被触发，那里会负责清除界面和提示成功
+        // 所以这里不需要写“删除成功”的提示，否则会被覆盖
     }
 }
 
@@ -127,39 +145,29 @@ void MainWindow::onNodeAdded(const GraphNode& node) {
     }
 }
 void MainWindow::onNodeDeleted(int nodeId) {
-    // --- 1. 安全删除右侧列表项 ---
-    // 技巧：使用【倒序遍历】。
-    // 如果正序遍历，删除第0个后，第1个会变成第0个，索引就会乱，导致漏删或越界。
+    // --- 1. 安全删除右侧列表项 (倒序遍历) ---
     for (int i = ui->propertyPanel->topLevelItemCount() - 1; i >= 0; --i) {
         QTreeWidgetItem *item = ui->propertyPanel->topLevelItem(i);
         if (item->text(0).toInt() == nodeId) {
-            delete ui->propertyPanel->takeTopLevelItem(i); // 彻底移除并释放内存
-            break; // 找到ID后立即退出循环，提高效率
+            delete ui->propertyPanel->takeTopLevelItem(i);
+            break;
         }
     }
 
-    // --- 2. 安全删除绘图场景项 (修复卡死的关键) ---
-
-    // 第一步：先“只读”遍历，找出所有要删除的项，存到列表中
+    // --- 2. 安全删除绘图场景项 ---
     QList<QGraphicsItem*> itemsToDelete;
     foreach (QGraphicsItem *item, m_scene->items()) {
-        // data(0) 是我们在 onNodeAdded 时存入的节点ID
         if (item->data(0).toInt() == nodeId) {
             itemsToDelete.append(item);
         }
     }
 
-    // 第二步：遍历临时列表进行真正的删除操作
     for (QGraphicsItem *item : itemsToDelete) {
-        m_scene->removeItem(item); // 从场景卸载
-        delete item;               // 释放内存
+        m_scene->removeItem(item); // 从场景移除
+        delete item;
     }
 
-    // 3. 状态栏提示
     ui->statusbar->showMessage(QString("节点 ID %1 已删除").arg(nodeId), 3000);
-
-    // 4. 强制刷新场景（防止有残影）
-    m_scene->update();
 }
 
 void MainWindow::onGraphChanged() {

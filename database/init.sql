@@ -28,7 +28,7 @@ CREATE TABLE node (
                       pos_x FLOAT DEFAULT 0,
                       pos_y FLOAT DEFAULT 0,
                       color VARCHAR(20) DEFAULT '#3498db',
-                      properties JSON,
+                      properties LONGTEXT,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                       FOREIGN KEY (ontology_id) REFERENCES ontology(ontology_id) ON DELETE CASCADE,
                       UNIQUE KEY unique_node (ontology_id, name)
@@ -42,7 +42,7 @@ CREATE TABLE relationship (
                               target_id INT NOT NULL,
                               relation_type VARCHAR(100) NOT NULL,
                               weight FLOAT DEFAULT 1.0,
-                              properties JSON,
+                              properties LONGTEXT,
                               FOREIGN KEY (ontology_id) REFERENCES ontology(ontology_id) ON DELETE CASCADE,
                               FOREIGN KEY (source_id) REFERENCES node(node_id) ON DELETE CASCADE,
                               FOREIGN KEY (target_id) REFERENCES node(node_id) ON DELETE CASCADE

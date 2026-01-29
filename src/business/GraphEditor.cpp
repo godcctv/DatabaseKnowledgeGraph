@@ -30,31 +30,25 @@ bool GraphEditor::addNode(GraphNode& node) {
 }
 
 bool GraphEditor::deleteNode(int nodeId) {
-    // 1. 备份数据 (为了支持撤销，必须先查出来存着)
+    // 1. 备份数据用于撤销
     GraphNode backup = NodeRepository::getNodeById(nodeId);
-    if (!backup.isValid()) {
-        qWarning() << "GraphEditor: 无法删除无效节点 ID =" << nodeId;
-        return false;
-    }
+    if (!backup.isValid()) return false;
 
-    // 2. 备份关联关系 (仅为了撤销，不需要手动删！)
+    // 2. 备份关联关系（仅用于撤销栈存储）
     auto relatedEdges = RelationshipRepository::getEdgesByNode(nodeId);
 
-
-    // 3. 只删除节点
+    // 3. 执行删除节点操作
     if (!NodeRepository::deleteNode(nodeId)) {
-        qCritical() << "GraphEditor: 删除节点失败 (节点ID =" << nodeId << ")";
         return false;
     }
 
-    // 4. 创建命令并推送撤销栈
+    // 4. 推送至撤销栈
     auto cmd = std::make_shared<DeleteNodeCommand>(backup, relatedEdges);
     m_undoStack.push(cmd);
     clearRedoStack();
 
     emit nodeDeleted(nodeId);
     emit graphChanged();
-    qInfo() << "GraphEditor: 节点删除成功 (数据库自动级联删除了关联关系)";
     return true;
 }
 
