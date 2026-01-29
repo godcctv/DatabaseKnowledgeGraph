@@ -22,8 +22,8 @@ int main(int argc, char *argv[]) {
 
     // 依然需要先配置并连接数据库
     DatabaseConfig config;
-    config.hostname = "192.168.137.129"; // 你的虚拟机IP
-    config.username = "root";
+    config.hostname = "localhost";
+    config.username = "admin";
     config.password = "123456";
     config.database = "DatabaseKnowledgeGraph";
 

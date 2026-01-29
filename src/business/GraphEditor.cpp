@@ -30,41 +30,25 @@ bool GraphEditor::addNode(GraphNode& node) {
 }
 
 bool GraphEditor::deleteNode(int nodeId) {
-    // ===== 问题3修复: 添加级联删除和事务处理 =====
-
-    // 1. 备份数据，用于撤销时的"复活"
+    // 1. 备份数据用于撤销
     GraphNode backup = NodeRepository::getNodeById(nodeId);
-    if (!backup.isValid()) {  // 使用新的isValid()方法
-        qWarning() << "GraphEditor: 无法删除无效节点 ID =" << nodeId;
-        return false;
-    }
+    if (!backup.isValid()) return false;
 
-    // 2. 获取所有关联的关系（必须在删除节点前备份）
+    // 2. 备份关联关系（仅用于撤销栈存储）
     auto relatedEdges = RelationshipRepository::getEdgesByNode(nodeId);
 
-    // 3. 删除所有关联的关系
-    for (const auto& edge : relatedEdges) {
-        if (!RelationshipRepository::deleteRelationship(edge.id)) {
-            qCritical() << "GraphEditor: 删除关系失败，节点删除中止 (关系ID =" << edge.id << ")";
-            return false;
-        }
-    }
-
-    // 4. 删除节点本身
+    // 3. 执行删除节点操作
     if (!NodeRepository::deleteNode(nodeId)) {
-        qCritical() << "GraphEditor: 删除节点失败 (节点ID =" << nodeId << ")";
         return false;
     }
 
-    // 5. 创建复合删除命令（包含节点和所有关系的备份）
-    // 注意：Command对象需要包含级联信息，便于undo时恢复
+    // 4. 推送至撤销栈
     auto cmd = std::make_shared<DeleteNodeCommand>(backup, relatedEdges);
     m_undoStack.push(cmd);
     clearRedoStack();
 
     emit nodeDeleted(nodeId);
     emit graphChanged();
-    qInfo() << "GraphEditor: 节点删除成功，同时删除" << relatedEdges.size() << "条关系";
     return true;
 }
 
