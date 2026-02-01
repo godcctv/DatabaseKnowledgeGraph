@@ -1,4 +1,4 @@
-# 1. 手动列出所有源文件 (防止漏掉或重复)
+# 1. 手动列出所有源文件
 set(SOURCES
         main.cpp
 
@@ -19,6 +19,7 @@ set(SOURCES
         ui/addedgedialog.cpp
 
         ui/VisualNode.cpp
+        ui/VisualEdge.cpp
 )
 
 set(HEADERS
@@ -45,6 +46,7 @@ set(HEADERS
         ui/addnodedialog.h
         ui/addedgedialog.h
         ui/VisualNode.h
+        ui/VisualEdge.h
 )
 
 set(FORMS
@@ -53,6 +55,9 @@ set(FORMS
         ui/addedgedialog.ui
         ui/VisualNode.h
         ui/VisualNode.cpp
+        ui/VisualEdge.h
+        ui/VisualEdge.cpp
+
 )
 
 # 2. 定义可执行程序 (直接使用上面定义的列表)

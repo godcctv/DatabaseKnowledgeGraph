@@ -27,6 +27,9 @@ private slots:
 
     void onActionAddRelationshipTriggered(); // 响应添加关系菜单
     void onRelationshipAdded(const GraphEdge& edge); // 响应后端添加成功
+    void onActionDeleteRelationshipTriggered();
+    void onRelationshipDeleted(int edgeId);
+
 
 
 private:

@@ -14,6 +14,8 @@ public:
     // isSource: 如果是 true，说明这个节点是线的起点；false 则是终点
     void addEdge(QGraphicsLineItem* edge, bool isSource);
 
+    void removeEdge(QGraphicsLineItem* edge);
+
     // 获取节点 ID
     int getId() const { return m_id; }
 

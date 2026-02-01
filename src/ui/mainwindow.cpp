@@ -3,6 +3,7 @@
 #include "addnodedialog.h"
 #include "addedgedialog.h"
 #include "VisualNode.h"
+#include "VisualEdge.h"
 #include "../database/DatabaseConnection.h"
 #include "../database/RelationshipRepository.h"
 #include <QGraphicsTextItem>
@@ -72,6 +73,7 @@ void MainWindow::setupConnections() {
     connect(ui->actionAddRelation, &QAction::triggered, this, &MainWindow::onActionAddRelationshipTriggered);
     //连接后端信号
     connect(m_graphEditor, &GraphEditor::relationshipAdded, this, &MainWindow::onRelationshipAdded);
+    connect(m_graphEditor, &GraphEditor::relationshipDeleted, this, &MainWindow::onRelationshipDeleted);
 }
 
 // 用户点击“添加节点”按钮
@@ -240,20 +242,61 @@ void MainWindow::onActionAddRelationshipTriggered() {
 }
 
 void MainWindow::onRelationshipAdded(const GraphEdge& edge) {
-    // 需要把 QGraphicsItem 强转为 VisualNode，这样才能调用 addEdge
     VisualNode* sourceNode = qgraphicsitem_cast<VisualNode*>(findItemById(edge.sourceId));
     VisualNode* targetNode = qgraphicsitem_cast<VisualNode*>(findItemById(edge.targetId));
 
     if (!sourceNode || !targetNode) return;
-    // 画线
-    QPen pen(Qt::black, 2);
-    QGraphicsLineItem *line = m_scene->addLine(
-        sourceNode->scenePos().x(), sourceNode->scenePos().y(),
-        targetNode->scenePos().x(), targetNode->scenePos().y(),
-        pen
-    );
-    line->setZValue(-1); // 放在底层
 
-    sourceNode->addEdge(line, true);  // 对于 sourceNode，它是起点 (true)
-    targetNode->addEdge(line, false); // 对于 targetNode，它是终点 (false)
+    //使用自定义的 VisualEdge
+    VisualEdge *visualEdge = new VisualEdge(edge.id, edge.sourceId, edge.targetId, edge.relationType, sourceNode, targetNode);
+    m_scene->addItem(visualEdge);
+
+    sourceNode->addEdge(visualEdge, true);
+    targetNode->addEdge(visualEdge, false);
+}
+
+void MainWindow::onActionDeleteRelationshipTriggered() {
+    // 1. 获取选中的项
+    QList<QGraphicsItem*> selected = m_scene->selectedItems();
+    if (selected.isEmpty()) return;
+
+    // 2. 遍历查找选中的 VisualEdge
+    int deletedCount = 0;
+    for (auto item : selected) {
+        if (item->type() == VisualEdge::Type) {
+            VisualEdge* edge = qgraphicsitem_cast<VisualEdge*>(item);
+            int edgeId = edge->getId();
+
+            // 3. 调用后端删除
+            if (m_graphEditor->deleteRelationship(edgeId)) {
+                // UI 移除 (VisualEdge 会被 GraphEditor::relationshipDeleted 信号触发移除，
+                // 或者在这里手动移也行，但推荐走信号槽闭环)
+                deletedCount++;
+            }
+        }
+    }
+
+    if (deletedCount == 0) {
+        ui->statusbar->showMessage("请先选中一条连线（变红）再点击删除", 3000);
+    }
+}
+
+void MainWindow::onRelationshipDeleted(int edgeId) {
+    // 遍历场景找线
+    foreach (QGraphicsItem *item, m_scene->items()) {
+        if (item->type() == VisualEdge::Type) {
+            VisualEdge* edge = qgraphicsitem_cast<VisualEdge*>(item);
+            if (edge->getId() == edgeId) {
+                VisualNode* src = edge->getSourceNode(); // 你需要在 VisualEdge 加这个 getter
+                VisualNode* dst = edge->getDestNode();   // 你需要在 VisualEdge 加这个 getter
+
+                if (src) src->removeEdge(edge);
+                if (dst) dst->removeEdge(edge);
+                m_scene->removeItem(edge);
+                delete edge;
+                break; // ID 唯一，删完退出
+            }
+        }
+    }
+    ui->statusbar->showMessage("关系已删除", 3000);
 }

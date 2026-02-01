@@ -1,4 +1,5 @@
 #include "VisualNode.h"
+#include "VisualEdge.h"
 #include <QBrush>
 #include <QPen>
 #include <QRadialGradient>
@@ -62,21 +63,28 @@ void VisualNode::addEdge(QGraphicsLineItem* edge, bool isSource) {
 
 QVariant VisualNode::itemChange(GraphicsItemChange change, const QVariant &value) {
     if (change == ItemPositionChange && scene()) {
-        // value 是新的位置
-        QPointF newPos = value.toPointF();
-        
-        // 遍历所有连线，更新它们
         for (auto& edgeInfo : m_edges) {
-            QLineF line = edgeInfo.line->line();
-            
-            // 如果我是起点，更新线的 P1；如果我是终点，更新 P2
-            if (edgeInfo.isSource) {
-                line.setP1(newPos); 
+            VisualEdge* vEdge = dynamic_cast<VisualEdge*>(edgeInfo.line);
+            if (vEdge) {
+                vEdge->updatePosition();
             } else {
-                line.setP2(newPos);
+                QLineF line = edgeInfo.line->line();
+                if (edgeInfo.isSource) line.setP1(value.toPointF());
+                else line.setP2(value.toPointF());
+                edgeInfo.line->setLine(line);
             }
-            edgeInfo.line->setLine(line);
         }
     }
     return QGraphicsEllipseItem::itemChange(change, value);
+}
+
+void VisualNode::removeEdge(QGraphicsLineItem* edge) {
+    // 使用 erase-remove 惯用语从列表中移除死掉的线
+    // 注意：这里的 m_edges 是我们在 VisualNode.h 里定义的那个 struct 列表
+    for (int i = 0; i < m_edges.size(); ++i) {
+        if (m_edges[i].line == edge) {
+            m_edges.removeAt(i);
+            break; // 找到并移除后退出
+        }
+    }
 }
