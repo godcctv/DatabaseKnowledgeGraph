@@ -6,6 +6,9 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QMessageBox>
+#include <QRadialGradient>
+#include <QGraphicsDropShadowEffect>
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -114,36 +117,73 @@ void MainWindow::onActionDeleteTriggered() {
 // src/ui/mainwindow.cpp
 
 void MainWindow::onNodeAdded(const GraphNode& node) {
-    // 1. 安全检查：如果 UI 或 场景还没初始化，直接退出，防止崩溃
-    if (!ui || !ui->propertyPanel || !m_scene) {
-        qWarning() << "onNodeAdded 被调用，但 UI 或 m_scene 未初始化，跳过绘制";
-        return;
-    }
+    // 1. 安全检查
+    if (!ui || !ui->propertyPanel || !m_scene) return;
 
-    // 2. 添加到右侧列表
+    // --- 更新右侧列表 (保持不变) ---
     QTreeWidgetItem *item = new QTreeWidgetItem(ui->propertyPanel);
     item->setText(0, QString::number(node.id));
     item->setText(1, node.name);
     item->setText(2, node.nodeType);
 
-    // 3. 在画布上画圆
-    auto ellipse = m_scene->addEllipse(node.posX, node.posY, 50, 50, QPen(Qt::black), QBrush(Qt::cyan));
+    // --- 🔥 3D 视觉升级开始 🔥 ---
 
-    // 存入 ID，为了以后能删除它
+    // 2.1 定义尺寸和基本颜色
+    qreal size = 50.0;
+    QColor baseColor(Qt::cyan); // 默认颜色，你也可以读取 node.color
+    if (node.nodeType == "Concept") baseColor = QColor("#2ecc71"); // 绿色
+    else if (node.nodeType == "Entity") baseColor = QColor("#3498db"); // 蓝色
+
+    // 2.2 创建径向渐变 (模拟光照)
+    // 圆心(cx, cy) 和 焦点(fx, fy) 稍微向左上角偏移，模拟光从左上角打过来
+    QRadialGradient gradient(node.posX + size/2, node.posY + size/2, size/2,
+                             node.posX + size/3, node.posY + size/3);
+
+    // 设置渐变色：中心亮，边缘暗
+    gradient.setColorAt(0, baseColor.lighter(150)); // 高光区域
+    gradient.setColorAt(0.3, baseColor);            // 本体颜色
+    gradient.setColorAt(1, baseColor.darker(150));  // 边缘阴影
+
+    // 2.3 绘制“球体” (去掉边框 pen，只用渐变 brush)
+    auto ellipse = m_scene->addEllipse(node.posX, node.posY, size, size,
+                                       QPen(Qt::NoPen), QBrush(gradient));
+
+    // 2.4 添加阴影特效 (让球体看起来悬浮)
+    QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect();
+    shadow->setBlurRadius(15);        // 模糊半径
+    shadow->setOffset(5, 5);          // 阴影向右下偏移
+    shadow->setColor(QColor(0, 0, 0, 100)); // 半透明黑色
+    ellipse->setGraphicsEffect(shadow);
+
+    // 2.5 设置交互属性
     ellipse->setData(0, node.id);
-    // 让圆圈可以被鼠标选中和拖动
     ellipse->setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsMovable);
 
-    // 4. 在圆圈中间画文字
-    auto text = m_scene->addText(node.name);
-    text->setPos(node.posX + 5, node.posY + 10); // 稍微偏移一点，居中显示
-    text->setData(0, node.id); // 文字也存一下 ID
+    // 优化：鼠标悬停时显示手型
+    ellipse->setCursor(Qt::PointingHandCursor);
 
-    // 5. 状态栏提示 (加个判断防止崩溃)
+    // --- 绘制文字 ---
+    auto text = m_scene->addText(node.name);
+    // 让文字居中显示在球体上方或中间
+    // 这里的偏移量可能需要根据文字长度微调，或者使用 QFontMetrics 计算
+    text->setPos(node.posX + 5, node.posY + 10);
+    text->setDefaultTextColor(Qt::white); // 深色球体配白色文字更清晰
+
+    // 给文字也加一点微弱的阴影，防止在浅色背景看不清
+    QGraphicsDropShadowEffect *textShadow = new QGraphicsDropShadowEffect();
+    textShadow->setBlurRadius(1);
+    textShadow->setOffset(1, 1);
+    textShadow->setColor(Qt::black);
+    text->setGraphicsEffect(textShadow);
+
+    text->setData(0, node.id);
+
+    // --- 状态栏提示 ---
     if (ui->statusbar) {
         ui->statusbar->showMessage(QString("节点 %1 加载成功").arg(node.name), 3000);
     }
 }
+
 void MainWindow::onNodeDeleted(int nodeId) {
     // --- 1. 安全删除右侧列表项 (倒序遍历) ---
     for (int i = ui->propertyPanel->topLevelItemCount() - 1; i >= 0; --i) {
