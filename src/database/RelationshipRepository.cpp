@@ -265,3 +265,32 @@ static GraphEdge mapQueryToEdge(const QSqlQuery& query) {
 
     return edge;
 }
+
+// src/database/RelationshipRepository.cpp
+
+QList<GraphEdge> RelationshipRepository::getAllRelationships(int ontologyId) {
+    QList<GraphEdge> edges;
+
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+
+    QSqlQuery query(db);
+    query.prepare("SELECT relation_id, source_id, target_id, relation_type, weight FROM relationship WHERE ontology_id = ?");
+    query.addBindValue(ontologyId);
+
+    if (query.exec()) {
+        while (query.next()) {
+            GraphEdge edge;
+            edge.id = query.value("relation_id").toInt();
+            edge.sourceId = query.value("source_id").toInt();
+            edge.targetId = query.value("target_id").toInt();
+            edge.relationType = query.value("relation_type").toString();
+            edge.weight = query.value("weight").toFloat();
+            edge.ontologyId = ontologyId;
+            edges.append(edge);
+        }
+    } else {
+        // 如果出错，打印出来方便调试
+        qCritical() << "加载关系失败 (SQL错误):" << query.lastError().text();
+    }
+    return edges;
+}

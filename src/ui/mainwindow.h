@@ -25,10 +25,16 @@ private slots:
 
     void onGraphChanged(); // 响应图数据变化
 
+    void onActionAddRelationshipTriggered(); // 响应添加关系菜单
+    void onRelationshipAdded(const GraphEdge& edge); // 响应后端添加成功
+
+
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;
     QGraphicsScene *m_scene;
+
+    QGraphicsItem* findItemById(int nodeId);
 
     void loadInitialData();
     void setupConnections();
