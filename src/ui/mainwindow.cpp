@@ -1,13 +1,17 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "addnodedialog.h"
-#include <QGraphicsTextItem>
+#include "addedgedialog.h"
+#include "VisualNode.h"
 #include "../database/DatabaseConnection.h"
+#include "../database/RelationshipRepository.h"
+#include <QGraphicsTextItem>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QMessageBox>
 #include <QRadialGradient>
 #include <QGraphicsDropShadowEffect>
+#include <QGraphicsLineItem>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -39,12 +43,17 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::loadInitialData() {
-    // 1. 获取 ID=1 的本体下的所有节点 (假设我们目前只操作本体1)
+    ui->statusbar->showMessage("正在从数据库加载图谱数据...");
+    QCoreApplication::processEvents(); // 刷新一下界面防止白屏
 
     QList<GraphNode> nodes = NodeRepository::getAllNodes(1);
-
     for (const auto& node : nodes) {
         onNodeAdded(node);
+    }
+    // 加载关系
+    QList<GraphEdge> edges = RelationshipRepository::getAllRelationships(1);
+    for (const auto& edge : edges) {
+        onRelationshipAdded(edge);
     }
 
     ui->statusbar->showMessage(QString("已加载 %1 个节点").arg(nodes.size()));
@@ -59,7 +68,10 @@ void MainWindow::setupConnections() {
     connect(m_graphEditor, &GraphEditor::nodeAdded, this, &MainWindow::onNodeAdded);
     connect(m_graphEditor, &GraphEditor::graphChanged, this, &MainWindow::onGraphChanged);
     connect(m_graphEditor, &GraphEditor::nodeDeleted, this, &MainWindow::onNodeDeleted);
-
+    //添加关系
+    connect(ui->actionAddRelation, &QAction::triggered, this, &MainWindow::onActionAddRelationshipTriggered);
+    //连接后端信号
+    connect(m_graphEditor, &GraphEditor::relationshipAdded, this, &MainWindow::onRelationshipAdded);
 }
 
 // 用户点击“添加节点”按钮
@@ -117,70 +129,24 @@ void MainWindow::onActionDeleteTriggered() {
 // src/ui/mainwindow.cpp
 
 void MainWindow::onNodeAdded(const GraphNode& node) {
-    // 1. 安全检查
-    if (!ui || !ui->propertyPanel || !m_scene) return;
+    if (!m_scene) return;
 
-    // --- 更新右侧列表 (保持不变) ---
-    QTreeWidgetItem *item = new QTreeWidgetItem(ui->propertyPanel);
-    item->setText(0, QString::number(node.id));
-    item->setText(1, node.name);
-    item->setText(2, node.nodeType);
+    // 直接创建一个智能的 VisualNode，所有的 3D、文字、阴影逻辑都在它里面了
+    VisualNode *visualNode = new VisualNode(node.id, node.name, node.nodeType, node.posX, node.posY);
 
-    // --- 🔥 3D 视觉升级开始 🔥 ---
+    m_scene->addItem(visualNode);
 
-    // 2.1 定义尺寸和基本颜色
-    qreal size = 50.0;
-    QColor baseColor(Qt::cyan); // 默认颜色，你也可以读取 node.color
-    if (node.nodeType == "Concept") baseColor = QColor("#2ecc71"); // 绿色
-    else if (node.nodeType == "Entity") baseColor = QColor("#3498db"); // 蓝色
-
-    // 2.2 创建径向渐变 (模拟光照)
-    // 圆心(cx, cy) 和 焦点(fx, fy) 稍微向左上角偏移，模拟光从左上角打过来
-    QRadialGradient gradient(node.posX + size/2, node.posY + size/2, size/2,
-                             node.posX + size/3, node.posY + size/3);
-
-    // 设置渐变色：中心亮，边缘暗
-    gradient.setColorAt(0, baseColor.lighter(150)); // 高光区域
-    gradient.setColorAt(0.3, baseColor);            // 本体颜色
-    gradient.setColorAt(1, baseColor.darker(150));  // 边缘阴影
-
-    // 2.3 绘制“球体” (去掉边框 pen，只用渐变 brush)
-    auto ellipse = m_scene->addEllipse(node.posX, node.posY, size, size,
-                                       QPen(Qt::NoPen), QBrush(gradient));
-
-    // 2.4 添加阴影特效 (让球体看起来悬浮)
-    QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect();
-    shadow->setBlurRadius(15);        // 模糊半径
-    shadow->setOffset(5, 5);          // 阴影向右下偏移
-    shadow->setColor(QColor(0, 0, 0, 100)); // 半透明黑色
-    ellipse->setGraphicsEffect(shadow);
-
-    // 2.5 设置交互属性
-    ellipse->setData(0, node.id);
-    ellipse->setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsMovable);
-
-    // 优化：鼠标悬停时显示手型
-    ellipse->setCursor(Qt::PointingHandCursor);
-
-    // --- 绘制文字 ---
-    auto text = m_scene->addText(node.name);
-    // 让文字居中显示在球体上方或中间
-    // 这里的偏移量可能需要根据文字长度微调，或者使用 QFontMetrics 计算
-    text->setPos(node.posX + 5, node.posY + 10);
-    text->setDefaultTextColor(Qt::white); // 深色球体配白色文字更清晰
-
-    // 给文字也加一点微弱的阴影，防止在浅色背景看不清
-    QGraphicsDropShadowEffect *textShadow = new QGraphicsDropShadowEffect();
-    textShadow->setBlurRadius(1);
-    textShadow->setOffset(1, 1);
-    textShadow->setColor(Qt::black);
-    text->setGraphicsEffect(textShadow);
-
-    text->setData(0, node.id);
-
-    // --- 状态栏提示 ---
+    // 状态栏提示
     if (ui->statusbar) {
         ui->statusbar->showMessage(QString("节点 %1 加载成功").arg(node.name), 3000);
+    }
+
+    // 更新右侧列表 (代码不变)
+    if (ui && ui->propertyPanel) {
+        QTreeWidgetItem *item = new QTreeWidgetItem(ui->propertyPanel);
+        item->setText(0, QString::number(node.id));
+        item->setText(1, node.name);
+        item->setText(2, node.nodeType);
     }
 }
 
@@ -222,4 +188,72 @@ void MainWindow::updateStatusBar() {
     } else {
         ui->statusbar->showMessage("数据库未连接", 0);
     }
+}
+
+QGraphicsItem* MainWindow::findItemById(int nodeId) {
+    if (!m_scene) return nullptr;
+    foreach (QGraphicsItem *item, m_scene->items()) {
+        if (item->type() == VisualNode::Type && item->data(0).toInt() == nodeId) {
+            return item;
+        }
+    }
+    return nullptr;
+}
+
+void MainWindow::onActionAddRelationshipTriggered() {
+    // 获取场景中选中的项
+    QList<QGraphicsItem*> selected = m_scene->selectedItems();
+
+    QList<VisualNode*> nodes;
+    for (auto item : selected) {
+        // 检查它是不是 VisualNode，而不是 EllipseItem
+        if (item->type() == VisualNode::Type) {
+            // 安全转换
+            nodes.append(qgraphicsitem_cast<VisualNode*>(item));
+        }
+    }
+
+    // 2. 校验：必须选中两个节点
+    if (nodes.size() != 2) {
+        QMessageBox::warning(this, "提示", "请按住 Ctrl 键在画布中选中【两个】节点，然后再点击添加关系！");
+        return;
+    }
+
+    // 3. 获取 ID (VisualNode 有专门的 getId 方法，比 data(0) 更优雅)
+    int id1 = nodes[0]->getId();
+    int id2 = nodes[1]->getId();
+
+    // 4. 弹出对话框
+    AddEdgeDialog dialog(this);
+    dialog.setNodes(QString("节点ID: %1").arg(id1), QString("节点ID: %2").arg(id2));
+
+    if (dialog.exec() == QDialog::Accepted) {
+        GraphEdge edge = dialog.getEdgeData();
+        edge.ontologyId = 1;
+        edge.sourceId = id1;
+        edge.targetId = id2;
+
+        if (!m_graphEditor->addRelationship(edge)) {
+            QMessageBox::warning(this, "错误", "添加关系失败！可能是关系已存在或方向错误。");
+        }
+    }
+}
+
+void MainWindow::onRelationshipAdded(const GraphEdge& edge) {
+    // 需要把 QGraphicsItem 强转为 VisualNode，这样才能调用 addEdge
+    VisualNode* sourceNode = qgraphicsitem_cast<VisualNode*>(findItemById(edge.sourceId));
+    VisualNode* targetNode = qgraphicsitem_cast<VisualNode*>(findItemById(edge.targetId));
+
+    if (!sourceNode || !targetNode) return;
+    // 画线
+    QPen pen(Qt::black, 2);
+    QGraphicsLineItem *line = m_scene->addLine(
+        sourceNode->scenePos().x(), sourceNode->scenePos().y(),
+        targetNode->scenePos().x(), targetNode->scenePos().y(),
+        pen
+    );
+    line->setZValue(-1); // 放在底层
+
+    sourceNode->addEdge(line, true);  // 对于 sourceNode，它是起点 (true)
+    targetNode->addEdge(line, false); // 对于 targetNode，它是终点 (false)
 }

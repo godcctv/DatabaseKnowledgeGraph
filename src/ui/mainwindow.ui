@@ -55,7 +55,7 @@
     </property>
     <addaction name="actionAddNode"/>
     <addaction name="actionDelete"/>
-    <addaction name="action_3"/>
+    <addaction name="actionAddRelation"/>
     <addaction name="action_6"/>
     <addaction name="action_7"/>
    </widget>
@@ -83,7 +83,7 @@
     <string>添加节点</string>
    </property>
   </action>
-  <action name="action_3">
+  <action name="actionAddRelation">
    <property name="text">
     <string>添加关系</string>
    </property>

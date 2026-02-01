@@ -24,6 +24,8 @@ public:
 
     // 根据ID获取单条关系
     static GraphEdge getRelationshipById(int relationId);
+
+    static QList<GraphEdge> getAllRelationships(int ontologyId);
 };
 
 #endif
