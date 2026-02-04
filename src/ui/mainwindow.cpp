@@ -247,12 +247,38 @@ void MainWindow::onRelationshipAdded(const GraphEdge& edge) {
 
     if (!sourceNode || !targetNode) return;
 
-    //使用自定义的 VisualEdge
+    // 1. 创建新边
     VisualEdge *visualEdge = new VisualEdge(edge.id, edge.sourceId, edge.targetId, edge.relationType, sourceNode, targetNode);
+
+    // 🔥🔥🔥 核心修改：计算弯曲偏移量 (Offset) 🔥🔥🔥
+    int sameConnectionCount = 0;
+
+    // 遍历场景中所有的线，找找看有没有“老乡”
+    foreach(QGraphicsItem* item, m_scene->items()) {
+        if (item->type() == VisualEdge::Type) {
+            VisualEdge* existing = qgraphicsitem_cast<VisualEdge*>(item);
+
+            // 检查是否是连接同一对节点 (A->B 或 B->A 都算)
+            bool isSamePair = (existing->getSourceNode() == sourceNode && existing->getDestNode() == targetNode) ||
+                              (existing->getSourceNode() == targetNode && existing->getDestNode() == sourceNode);
+
+            if (isSamePair) {
+                sameConnectionCount++;
+            }
+        }
+    }
+
+    if (sameConnectionCount > 0) {
+        int direction = (sameConnectionCount % 2 == 0) ? -1 : 1;
+        int magnitude = ((sameConnectionCount + 1) / 2) * 40; // 40 是弯曲幅度，可调整
+        visualEdge->setOffset(direction * magnitude);
+    }
+
     m_scene->addItem(visualEdge);
 
-    sourceNode->addEdge(visualEdge, true);
-    targetNode->addEdge(visualEdge, false);
+    sourceNode->addEdge(visualEdge, true); // true = 我是起点
+    targetNode->addEdge(visualEdge, false); // false = 我是终点 (修正：之前这里可能写反了或者没注意，VisualNode内部逻辑要匹配)
+
 }
 
 void MainWindow::onActionDeleteRelationshipTriggered() {

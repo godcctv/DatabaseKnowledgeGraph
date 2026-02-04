@@ -26,6 +26,8 @@ public:
     static GraphEdge getRelationshipById(int relationId);
 
     static QList<GraphEdge> getAllRelationships(int ontologyId);
+
+    static bool relationshipExists(int sourceId, int targetId, const QString& type);
 };
 
 #endif

@@ -26,13 +26,37 @@ void VisualEdge::updatePosition() {
 }
 
 QPainterPath VisualEdge::shape() const {
-    // 创建一个较宽的路径用于碰撞检测（让鼠标更容易点中细线）
     QPainterPath path;
-    path.moveTo(line().p1());
-    path.lineTo(line().p2());
+    QLineF l = line(); // 获取当前的线段
+    path.moveTo(l.p1());
 
+    if (m_offset == 0) {
+        // 直线情况
+        path.lineTo(l.p2());
+    } else {
+        // 曲线情况：必须复制 paint() 里的计算逻辑
+        QPointF center = l.center();
+        double dx = l.dx();
+        double dy = l.dy();
+        double length = l.length();
+
+        if (length > 0) {
+            // 计算完全相同的控制点
+            double normX = -dy / length;
+            double normY = dx / length;
+            QPointF controlPoint(center.x() + normX * m_offset,
+                                 center.y() + normY * m_offset);
+
+            // 使用和绘制时一样的贝塞尔路径
+            path.quadTo(controlPoint, l.p2());
+        } else {
+            path.lineTo(l.p2());
+        }
+    }
+
+    // 创建一个较宽的“点击感应区”（10像素宽）
     QPainterPathStroker stroker;
-    stroker.setWidth(10); // 感应宽度 10 像素
+    stroker.setWidth(10);
     return stroker.createStroke(path);
 }
 
@@ -127,4 +151,47 @@ void VisualEdge::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
             }
         }
     }
+}
+
+QRectF VisualEdge::boundingRect() const {
+    // 1. 获取线条/曲线的基础边界
+    QRectF rect = shape().boundingRect();
+
+    // 2. 如果有文字，必须把文字框也算进去！
+    if (!m_relationType.isEmpty()) {
+        // 重新计算文字的位置（逻辑必须和 paint 中保持一致）
+        QPainterPath path;
+        QLineF l = line();
+        path.moveTo(l.p1());
+
+        if (m_offset == 0) {
+            path.lineTo(l.p2());
+        } else {
+            // 曲线逻辑
+            QPointF center = l.center();
+            double dx = l.dx();
+            double dy = l.dy();
+            double length = l.length();
+            if (length > 0) {
+                double normX = -dy / length;
+                double normY = dx / length;
+                QPointF controlPoint(center.x() + normX * m_offset, center.y() + normY * m_offset);
+                path.quadTo(controlPoint, l.p2());
+            } else {
+                path.lineTo(l.p2());
+            }
+        }
+
+        // 获取中点
+        QPointF textPos = path.pointAtPercent(0.5);
+
+        double textWidth = 80;  // 稍微宽一点
+        double textHeight = 40; // 稍微高一点
+        QRectF textRect(textPos.x() - textWidth/2, textPos.y() - textHeight/2, textWidth, textHeight);
+
+
+        rect = rect.united(textRect);
+    }
+
+    return rect;
 }

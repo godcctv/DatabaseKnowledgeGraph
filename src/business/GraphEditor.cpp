@@ -87,6 +87,10 @@ bool GraphEditor::addRelationship(GraphEdge& edge) {
         qWarning() << "GraphEditor: 无效的关系参数，无法添加";
         return false;
     }
+    if (RelationshipRepository::relationshipExists(edge.sourceId, edge.targetId, edge.relationType)) {
+        qWarning() << "GraphEditor: 关系已存在，拒绝添加 ->" << edge.relationType;
+        return false;
+    }
     if (edge.sourceId == edge.targetId) {
         qWarning() << "GraphEditor: 源节点和目标节点不能相同，无法添加关系";
         return false;

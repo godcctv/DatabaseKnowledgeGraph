@@ -239,10 +239,7 @@ GraphEdge RelationshipRepository::getRelationshipById(int relationId) {
     return GraphEdge();
 }
 
-/**
- * @brief 核心映射函数：将QSqlQuery结果映射到GraphEdge对象
- * 消除代码重复，保证字段映射的一致性
- */
+
 static GraphEdge mapQueryToEdge(const QSqlQuery& query) {
     GraphEdge edge;
     edge.id = query.value("relation_id").toInt();
@@ -293,4 +290,20 @@ QList<GraphEdge> RelationshipRepository::getAllRelationships(int ontologyId) {
         qCritical() << "加载关系失败 (SQL错误):" << query.lastError().text();
     }
     return edges;
+}
+
+bool RelationshipRepository::relationshipExists(int sourceId, int targetId, const QString& type) {
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    QSqlQuery query(db);
+
+    // 查询是否存在 源ID、目标ID、类型 都完全一样的记录
+    query.prepare("SELECT count(*) FROM relationship WHERE source_id = ? AND target_id = ? AND relation_type = ?");
+    query.addBindValue(sourceId);
+    query.addBindValue(targetId);
+    query.addBindValue(type);
+
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt() > 0;
+    }
+    return false;
 }

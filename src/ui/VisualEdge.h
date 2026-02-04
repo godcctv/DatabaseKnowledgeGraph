@@ -19,13 +19,17 @@ public:
     int getId() const { return m_id; }
     int type() const override { return Type; }
 
+    QRectF boundingRect() const override;
     // 更新线条位置
     void updatePosition();
 
-    // 🔥 新增：设置弯曲偏移量 (0=直线, !=0曲线)
-    void setOffset(qreal value) { m_offset = value; update(); }
+    void setOffset(qreal value) {
+        if (m_offset != value) {
+            prepareGeometryChange();
+            m_offset = value;
+        }
+    }
 
-    // 🔥 新增：获取两端的节点 (用于删除逻辑)
     VisualNode* getSourceNode() const { return m_srcNode; }
     VisualNode* getDestNode() const { return m_destNode; }
 
