@@ -1,0 +1,149 @@
+/* =======================================================
+   Modern Deep Dark Theme (VS Code Style)
+   风格：极简、扁平、专业、护眼
+   ======================================================= */
+
+/* --- 全局基础 --- */
+QWidget {
+    background-color: #1e1e1e;       /* 主背景：深灰 */
+    color: #cccccc;                  /* 主文字：柔和灰白 */
+    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    font-size: 10pt;
+    selection-background-color: #264f78; /* 选中底色：深蓝 */
+    selection-color: #ffffff;
+    outline: none;                   /* 去掉选中时的虚线框 */
+}
+
+/* --- 主绘图区 (无限画布) --- */
+QGraphicsView {
+    background-color: #1e1e1e;
+    border: none;                    /* 去掉边框，沉浸式体验 */
+}
+
+/* --- 右侧属性面板 & 列表 --- */
+QTreeWidget, QListWidget {
+    background-color: #252526;       /* 侧边栏：稍亮一点的灰 */
+    border-left: 1px solid #3e3e42;  /* 左侧分割线 */
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
+    padding-top: 5px;
+}
+
+QTreeWidget::item {
+    height: 28px;
+    padding-left: 5px;
+    border-bottom: 1px solid transparent;
+}
+
+QTreeWidget::item:hover {
+    background-color: #2a2d2e;       /* 悬停：微亮 */
+}
+
+QTreeWidget::item:selected {
+    background-color: #37373d;       /* 选中：深灰块 */
+    color: #ffffff;
+    border-left: 2px solid #007acc;  /* 左侧蓝色指示条 */
+}
+
+/* --- 表头 --- */
+QHeaderView::section {
+    background-color: #252526;
+    color: #bbbbbb;
+    padding: 6px;
+    border: none;
+    border-bottom: 1px solid #3e3e42;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 9pt;
+}
+
+/* --- 工具栏 --- */
+QToolBar {
+    background-color: #1e1e1e;
+    border-bottom: 1px solid #3e3e42;
+    spacing: 8px;
+    padding: 6px;
+}
+
+QToolButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #cccccc;
+}
+
+QToolButton:hover {
+    background-color: #3e3e42;
+}
+
+QToolButton:pressed {
+    background-color: #007acc;       /* 按下：品牌蓝 */
+    color: #ffffff;
+}
+
+/* --- 菜单栏 --- */
+QMenuBar {
+    background-color: #1e1e1e;
+    border-bottom: 1px solid #2d2d2d;
+    color: #cccccc;
+}
+
+QMenuBar::item:selected {
+    background-color: #3e3e42;
+}
+
+QMenu {
+    background-color: #252526;
+    border: 1px solid #454545;
+    padding: 4px;
+}
+
+QMenu::item:selected {
+    background-color: #094771;
+    color: #ffffff;
+}
+
+/* --- 状态栏 --- */
+QStatusBar {
+    background-color: #007acc;       /* 底部醒目蓝条 */
+    color: #ffffff;
+    font-size: 9pt;
+}
+
+/* --- 弹窗与输入框 --- */
+QDialog {
+    background-color: #252526;
+}
+
+QLineEdit, QComboBox, QSpinBox {
+    background-color: #3c3c3c;       /* 输入框深色背景 */
+    border: 1px solid #3c3c3c;
+    border-radius: 2px;
+    color: #cccccc;
+    padding: 5px;
+}
+
+QLineEdit:focus, QComboBox:focus {
+    border: 1px solid #007acc;       /* 聚焦变蓝 */
+    background-color: #1e1e1e;
+}
+
+/* --- 按钮 --- */
+QPushButton {
+    background-color: #0e639c;       /* 品牌蓝按钮 */
+    color: #ffffff;
+    border: none;
+    border-radius: 2px;
+    padding: 6px 16px;
+    font-weight: 600;
+}
+
+QPushButton:hover {
+    background-color: #1177bb;
+}
+
+QPushButton:pressed {
+    background-color: #094771;
+}
