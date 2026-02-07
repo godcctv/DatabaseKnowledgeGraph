@@ -36,6 +36,11 @@ MainWindow::MainWindow(QWidget *parent)
     // 3. 初始化属性面板列头
     ui->propertyPanel->setHeaderLabels(QStringList() << "ID" << "名称" << "类型");
 
+    ui->splitter->setStretchFactor(0, 4);
+    ui->splitter->setStretchFactor(1, 1);
+    // 设置右侧面板的最大宽度，防止它太宽
+    ui->propertyPanel->setMaximumWidth(400);
+
     // 4. 建立连接
     setupConnections();
     updateStatusBar();

@@ -1,189 +1,99 @@
-/* =======================================================
-   Modern Deep Dark Theme (VS Code Style)
-   风格：极简、扁平、专业、护眼
-   ======================================================= */
+/* src/ui/style.qss - 完整版 V2 */
 
-/* --- 全局基础 --- */
+/* ================= 全局设定 ================= */
 QWidget {
-    background-color: #1e1e1e;       /* 主背景：深灰 */
-    color: #cccccc;                  /* 主文字：柔和灰白 */
-    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    background-color: #1e1e1e; /* 全局深灰底色 */
+    color: #cccccc;            /* 全局灰白文字 */
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
     font-size: 10pt;
-    selection-background-color: #264f78; /* 选中底色：深蓝 */
-    selection-color: #ffffff;
-    outline: none;                   /* 去掉选中时的虚线框 */
+    outline: none;             /* 去掉焦点虚线框 */
 }
 
-/* --- 主绘图区 (无限画布) --- */
-QGraphicsView {
-    background-color: #1e1e1e;
-    border: none;                    /* 去掉边框，沉浸式体验 */
+/* ================= 主窗口与菜单 ================= */
+QMainWindow::separator {
+    background-color: #2d2d2d;
+    width: 1px;
 }
 
-/* --- 右侧属性面板 & 列表 --- */
-QTreeWidget, QListWidget {
-    background-color: #252526;       /* 侧边栏：稍亮一点的灰 */
-    border-left: 1px solid #3e3e42;  /* 左侧分割线 */
-    border-top: none;
-    border-right: none;
-    border-bottom: none;
-    padding-top: 5px;
-}
-
-QTreeWidget::item {
-    height: 28px;
-    padding-left: 5px;
-    border-bottom: 1px solid transparent;
-}
-
-QTreeWidget::item:hover {
-    background-color: #2a2d2e;       /* 悬停：微亮 */
-}
-
-QTreeWidget::item:selected {
-    background-color: #37373d;       /* 选中：深灰块 */
-    color: #ffffff;
-    border-left: 2px solid #007acc;  /* 左侧蓝色指示条 */
-}
-
-/* --- 表头 --- */
-QHeaderView::section {
-    background-color: #252526;
-    color: #bbbbbb;
-    padding: 6px;
-    border: none;
-    border-bottom: 1px solid #3e3e42;
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 9pt;
-}
-
-/* --- 工具栏 --- */
-QToolBar {
-    background-color: #1e1e1e;
-    border-bottom: 1px solid #3e3e42;
-    spacing: 8px;
-    padding: 6px;
-}
-
-QToolButton {
-    background-color: transparent;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    padding: 6px 10px;
-    color: #cccccc;
-}
-
-QToolButton:hover {
-    background-color: #3e3e42;
-}
-
-QToolButton:pressed {
-    background-color: #007acc;       /* 按下：品牌蓝 */
-    color: #ffffff;
-}
-
-/* --- 菜单栏 --- */
 QMenuBar {
     background-color: #1e1e1e;
-    border-bottom: 1px solid #2d2d2d;
-    color: #cccccc;
+    border-bottom: 1px solid #333333;
 }
-
+QMenuBar::item {
+    background: transparent;
+    padding: 8px 12px;
+}
 QMenuBar::item:selected {
-    background-color: #3e3e42;
+    background-color: #333333; /* 菜单项悬停 */
 }
-
 QMenu {
     background-color: #252526;
     border: 1px solid #454545;
-    padding: 4px;
 }
-
 QMenu::item:selected {
-    background-color: #094771;
-    color: #ffffff;
+    background-color: #094771; /* 菜单下拉项选中蓝 */
 }
 
-/* --- 状态栏 --- */
-QStatusBar {
-    background-color: #007acc;       /* 底部醒目蓝条 */
-    color: #ffffff;
-    font-size: 9pt;
+/* ================= 分割器 (QSplitter) ================= */
+/* 这就是控制左右窗口之间那条线样式的 */
+QSplitter::handle {
+    background-color: #2d2d2d; /* 深色分割线 */
+}
+QSplitter::handle:horizontal {
+    width: 2px; /* 极细分割线，显得精致 */
 }
 
-/* --- 弹窗与输入框 --- */
-QDialog {
-    background-color: #252526;
-}
-
-QLineEdit, QComboBox, QSpinBox {
-    background-color: #3c3c3c;       /* 输入框深色背景 */
-    border: 1px solid #3c3c3c;
-    border-radius: 2px;
-    color: #cccccc;
-    padding: 5px;
-}
-
-QLineEdit:focus, QComboBox:focus {
-    border: 1px solid #007acc;       /* 聚焦变蓝 */
-    background-color: #1e1e1e;
-}
-
-/* --- 按钮 --- */
-QPushButton {
-    background-color: #0e639c;       /* 品牌蓝按钮 */
-    color: #ffffff;
+/* ================= 右侧属性面板 (QTreeWidget) ================= */
+QTreeWidget {
+    background-color: #252526; /* 侧边栏背景：比主背景稍亮 */
     border: none;
-    border-radius: 2px;
-    padding: 6px 16px;
-    font-weight: 600;
+    border-left: 1px solid #333333; /* 左侧加一条分割线 */
+    alternate-background-color: #2a2a2d; /* 隔行变色 */
 }
 
-QPushButton:hover {
-    background-color: #1177bb;
+/* 列表项 */
+QTreeWidget::item {
+    height: 32px; /* 增加行高，不那么拥挤 */
+    padding-left: 5px;
+}
+QTreeWidget::item:hover {
+    background-color: #2a2d2e;
+}
+QTreeWidget::item:selected {
+    background-color: #37373d;
+    color: #ffffff;
+    border-left: 3px solid #007acc; /* 选中时左侧出现蓝色指示条 */
 }
 
-QPushButton:pressed {
-    background-color: #094771;
+/* 表头 (ID, 名称, 类型 那一行) */
+QHeaderView::section {
+    background-color: #252526; /* 表头背景 */
+    color: #858585;            /* 表头文字颜色 */
+    padding: 8px;
+    border: none;
+    border-bottom: 1px solid #333333;
+    font-weight: bold;
+    text-transform: uppercase; /* 大写 */
 }
 
-/* src/ui/style.qss 追加内容 */
-
-/* --- 极简滚动条 (Modern Scrollbar) --- */
+/* ================= 滚动条 (保持之前的修改) ================= */
 QScrollBar:vertical {
     border: none;
-    background: #1e1e1e; /* 与背景同色 */
+    background: #252526;
     width: 10px;
     margin: 0px;
 }
 QScrollBar::handle:vertical {
-    background: #424242; /* 滑块颜色 */
+    background: #424242;
     min-height: 20px;
-    border-radius: 5px;  /* 圆角 */
+    border-radius: 5px;
 }
 QScrollBar::handle:vertical:hover {
-    background: #686868; /* 悬停变亮 */
+    background: #686868;
 }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    height: 0px; /* 隐藏箭头 */
+    height: 0px;
 }
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
     background: none;
-}
-
-/* 水平滚动条同理 */
-QScrollBar:horizontal {
-    border: none;
-    background: #1e1e1e;
-    height: 10px;
-    margin: 0px;
-}
-QScrollBar::handle:horizontal {
-    background: #424242;
-    min-width: 20px;
-    border-radius: 5px;
-}
-QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-    width: 0px;
 }

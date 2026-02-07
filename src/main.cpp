@@ -5,6 +5,7 @@
 #include <cassert>
 #include <QFile>
 #include <QTextStream>
+#include <QStyleFactory>
 #include "database/DatabaseConnection.h"
 #include "database/NodeRepository.h"
 #include "database/RelationshipRepository.h"
@@ -21,6 +22,8 @@ void runAttributeLogicTest();
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
+    a.setStyle(QStyleFactory::create("Fusion"));
+
     QFile file(":/style.qss");
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
         qDebug() << "Warning: style.qss not found at src/ui/style.qss";
