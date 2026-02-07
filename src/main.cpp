@@ -3,6 +3,8 @@
 #include <QDebug>
 #include <QJsonObject>
 #include <cassert>
+#include <QFile>
+#include <QTextStream>
 #include "database/DatabaseConnection.h"
 #include "database/NodeRepository.h"
 #include "database/RelationshipRepository.h"
@@ -19,7 +21,14 @@ void runAttributeLogicTest();
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
-
+    QFile file(":/style.qss");
+    if (!file.open(QFile::ReadOnly | QFile::Text)) {
+        qDebug() << "Warning: style.qss not found at src/ui/style.qss";
+    } else {
+        QTextStream stream(&file);
+        a.setStyleSheet(stream.readAll());
+        file.close();
+    }
     // 依然需要先配置并连接数据库
     DatabaseConfig config;
     config.hostname = "localhost";

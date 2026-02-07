@@ -64,9 +64,14 @@ void VisualEdge::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
     if (!m_srcNode || !m_destNode) return;
     if (m_srcNode->collidesWithItem(m_destNode)) return; // 如果球重叠了就不画线
 
+    QColor normalColor("#A0A0A0");   // 浅灰色 (未选中)
+    QColor selectedColor("#00E5FF"); // 青色高亮 (选中)
+
     QPen myPen = pen();
-    myPen.setColor(isSelected() ? Qt::red : Qt::black); // 选中变红
-    myPen.setWidth(2);
+    myPen.setColor(isSelected() ? selectedColor : normalColor);
+    myPen.setWidthF(1.5); //稍微细一点，更精致
+    myPen.setStyle(Qt::DashLine);
+
     painter->setPen(myPen);
     painter->setBrush(Qt::NoBrush);
 
@@ -116,10 +121,15 @@ void VisualEdge::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
         }
 
         // 绘制文字背景和文字
-        painter->setBrush(Qt::white); // 白底
-        painter->setPen(Qt::black);
-        painter->drawRect(QRectF(-30, -10, 60, 20)); // 简单的文字框
-        painter->drawText(QRectF(-30, -10, 60, 20), Qt::AlignCenter, m_relationType);
+        painter->setBrush(QColor(30, 30, 30, 200)); // 半透明深黑
+        painter->setPen(QPen(normalColor, 1));      // 边框
+        QRectF bgRect(-30, -10, 60, 20);
+        painter->drawRoundedRect(bgRect, 10, 10);   // 圆角矩形
+
+        // 文字颜色
+        painter->setPen(Qt::white);
+        painter->drawText(bgRect, Qt::AlignCenter, m_relationType);
+
         painter->restore();
     }
 }

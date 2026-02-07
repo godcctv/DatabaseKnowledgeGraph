@@ -27,6 +27,12 @@ MainWindow::MainWindow(QWidget *parent)
     m_scene = new QGraphicsScene(this);
     ui->graphicsView->setScene(m_scene);
 
+    ui->graphicsView->setRenderHint(QPainter::Antialiasing);           // 图元抗锯齿
+    ui->graphicsView->setRenderHint(QPainter::TextAntialiasing);       // 文字抗锯齿
+    ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform);  // 图片平滑
+    ui->graphicsView->setBackgroundBrush(QColor("#1e1e1e"));           // 强制背景色，防止闪烁
+    ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate); // 避免残留重影
+
     // 3. 初始化属性面板列头
     ui->propertyPanel->setHeaderLabels(QStringList() << "ID" << "名称" << "类型");
 

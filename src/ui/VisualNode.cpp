@@ -8,53 +8,62 @@
 #include <QFont>
 #include <QCursor>
 
+// src/ui/VisualNode.cpp
+
 VisualNode::VisualNode(int id, QString name, QString type, qreal x, qreal y)
     : m_id(id), m_name(name), m_nodeType(type)
 {
-    // 1. 设置几何形状
-    setRect(-25, -25, 50, 50);
-    
-    // 2. 设置位置
+    // 1. 设置几何大小
+    int radius = 25;
+    setRect(-radius, -radius, radius * 2, radius * 2);
     setPos(x, y);
-    // 3. 设置 3D 外观
-    QColor baseColor(Qt::cyan);
-    if (type == "Concept") baseColor = QColor("#2ecc71");
-    else if (type == "Entity") baseColor = QColor("#3498db");
 
-    // 光照效果
-    QRadialGradient gradient(-10, -10, 25, -10, -10); // 稍微偏移光照点
-    gradient.setColorAt(0, baseColor.lighter(150));
-    gradient.setColorAt(0.3, baseColor);
-    gradient.setColorAt(1, baseColor.darker(150));
+    // 2. 确定主色调 (使用更现代的配色)
+    QColor baseColor;
+    if (type == "Concept") baseColor = QColor("#00C853");      // 鲜艳的翡翠绿
+    else if (type == "Entity") baseColor = QColor("#2979FF");  // 鲜艳的谷歌蓝
+    else baseColor = QColor("#FF6D00");                        // 活力橙
+
+    // 3. 现代填充风格：线性微渐变 (比径向渐变更显平滑)
+    // 从左上到右下，模拟柔和光照
+    QLinearGradient gradient(-radius, -radius, radius, radius);
+    gradient.setColorAt(0, baseColor.lighter(120));
+    gradient.setColorAt(1, baseColor);
     setBrush(QBrush(gradient));
-    setPen(Qt::NoPen);
 
-    // 4. 添加阴影
+    // 4. 边框：白色半透明光圈 (增强深色背景下的对比度)
+    QPen pen(QColor(255, 255, 255, 200));
+    pen.setWidthF(1.5); // 使用浮点宽度更细腻
+    setPen(pen);
+
+    // 5. 阴影：发光效果 (Glow Effect) 而不是单纯的黑色投影
     QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect();
-    shadow->setBlurRadius(15);
-    shadow->setOffset(5, 5);
-    shadow->setColor(QColor(0, 0, 0, 100));
+    shadow->setBlurRadius(20); // 大半径模糊
+    shadow->setOffset(0, 0);   // 居中发光
+    shadow->setColor(baseColor.lighter(120)); // 使用同色系光晕，而不是黑色
+    shadow->setEnabled(true);
     setGraphicsEffect(shadow);
 
-    // 设置可交互
+    // 6. 交互设置
     setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemSendsScenePositionChanges);
     setCursor(Qt::PointingHandCursor);
-    setData(0, id); // 兼容旧代码查找
+    setData(0, id);
 
-    // 因为设置了 parentItem (this)，文字会自动跟随球体移动！
+    // 7. 文本设置
     QGraphicsTextItem *textItem = new QGraphicsTextItem(name, this);
-    textItem->setDefaultTextColor(Qt::white);
-    
-    // 居中文字 (简单算法：向左上偏移文字宽高的一半)
-    QRectF textRect = textItem->boundingRect();
-    textItem->setPos(-textRect.width() / 2, -textRect.height() / 2);
-    
-    // 给文字加一点阴影，防止看不清
+    textItem->setFont(QFont("Microsoft YaHei", 9, QFont::Bold)); // 使用微软雅黑
+    textItem->setDefaultTextColor(QColor(240, 240, 240)); // 几乎全白
+
+    // 文本阴影 (黑色描边效果，防止文字在浅色背景看不清)
     QGraphicsDropShadowEffect *textShadow = new QGraphicsDropShadowEffect();
-    textShadow->setBlurRadius(1);
+    textShadow->setBlurRadius(2);
     textShadow->setOffset(1, 1);
     textShadow->setColor(Qt::black);
     textItem->setGraphicsEffect(textShadow);
+
+    // 文本居中逻辑
+    QRectF textRect = textItem->boundingRect();
+    textItem->setPos(-textRect.width() / 2, radius + 5); // 放在圆圈下方，而不是中间，更整洁
 }
 
 void VisualNode::addEdge(QGraphicsLineItem* edge, bool isSource) {
