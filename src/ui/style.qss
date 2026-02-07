@@ -1,0 +1,99 @@
+/* src/ui/style.qss - 完整版 V2 */
+
+/* ================= 全局设定 ================= */
+QWidget {
+    background-color: #1e1e1e; /* 全局深灰底色 */
+    color: #cccccc;            /* 全局灰白文字 */
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    font-size: 10pt;
+    outline: none;             /* 去掉焦点虚线框 */
+}
+
+/* ================= 主窗口与菜单 ================= */
+QMainWindow::separator {
+    background-color: #2d2d2d;
+    width: 1px;
+}
+
+QMenuBar {
+    background-color: #1e1e1e;
+    border-bottom: 1px solid #333333;
+}
+QMenuBar::item {
+    background: transparent;
+    padding: 8px 12px;
+}
+QMenuBar::item:selected {
+    background-color: #333333; /* 菜单项悬停 */
+}
+QMenu {
+    background-color: #252526;
+    border: 1px solid #454545;
+}
+QMenu::item:selected {
+    background-color: #094771; /* 菜单下拉项选中蓝 */
+}
+
+/* ================= 分割器 (QSplitter) ================= */
+/* 这就是控制左右窗口之间那条线样式的 */
+QSplitter::handle {
+    background-color: #2d2d2d; /* 深色分割线 */
+}
+QSplitter::handle:horizontal {
+    width: 2px; /* 极细分割线，显得精致 */
+}
+
+/* ================= 右侧属性面板 (QTreeWidget) ================= */
+QTreeWidget {
+    background-color: #252526; /* 侧边栏背景：比主背景稍亮 */
+    border: none;
+    border-left: 1px solid #333333; /* 左侧加一条分割线 */
+    alternate-background-color: #2a2a2d; /* 隔行变色 */
+}
+
+/* 列表项 */
+QTreeWidget::item {
+    height: 32px; /* 增加行高，不那么拥挤 */
+    padding-left: 5px;
+}
+QTreeWidget::item:hover {
+    background-color: #2a2d2e;
+}
+QTreeWidget::item:selected {
+    background-color: #37373d;
+    color: #ffffff;
+    border-left: 3px solid #007acc; /* 选中时左侧出现蓝色指示条 */
+}
+
+/* 表头 (ID, 名称, 类型 那一行) */
+QHeaderView::section {
+    background-color: #252526; /* 表头背景 */
+    color: #858585;            /* 表头文字颜色 */
+    padding: 8px;
+    border: none;
+    border-bottom: 1px solid #333333;
+    font-weight: bold;
+    text-transform: uppercase; /* 大写 */
+}
+
+/* ================= 滚动条 (保持之前的修改) ================= */
+QScrollBar:vertical {
+    border: none;
+    background: #252526;
+    width: 10px;
+    margin: 0px;
+}
+QScrollBar::handle:vertical {
+    background: #424242;
+    min-height: 20px;
+    border-radius: 5px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #686868;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}

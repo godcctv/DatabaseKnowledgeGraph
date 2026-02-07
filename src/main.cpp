@@ -1,26 +1,63 @@
-//#include <QCoreApplication>
+// src/main.cpp
 #include <QApplication>
+#include <QFile>
+#include <QTextStream>
 #include <QDebug>
-#include <QJsonObject>
-#include <cassert>
+#include <QStyleFactory>
 #include "database/DatabaseConnection.h"
-#include "database/NodeRepository.h"
-#include "database/RelationshipRepository.h"
-#include "database/OntologyRepository.h"
-#include "database/AttributeRepository.h"
-#include "business/GraphEditor.h"
-#include "business/QueryEngine.h"
-#include "model/GraphNode.h"
-#include "model/GraphEdge.h"
-#include "model/Attribute.h"
 #include "ui/mainwindow.h"
 
-void runAttributeLogicTest();
+// 辅助函数：智能加载样式表
+// 优先加载文件，加载失败则使用内置字符串，确保界面永远是深色
+QString loadStyleSheet() {
+    QStringList paths = {
+        ":/style.qss",                          // 资源路径
+        "src/ui/style.qss",                     // 源码路径
+        "../DatabaseKnowledgeGraph/src/ui/style.qss", // 构建目录路径
+        "style.qss"                             // 运行目录
+    };
+
+    for (const QString& path : paths) {
+        QFile file(path);
+        if (file.open(QFile::ReadOnly | QFile::Text)) {
+            qDebug() << "Success: Loaded style from" << path;
+            QTextStream stream(&file);
+            return stream.readAll();
+        }
+    }
+
+    qWarning() << "Warning: style.qss not found! Using internal fallback style.";
+
+    // 内置保底深色样式 (与 style.qss 内容一致)
+    return R"(
+        QWidget { background-color: #1e1e1e; color: #cccccc; font-family: "Microsoft YaHei"; font-size: 10pt; }
+        QMainWindow::separator { background-color: #2d2d2d; width: 1px; }
+        QMenuBar { background-color: #1e1e1e; border-bottom: 1px solid #333333; }
+        QMenuBar::item { background: transparent; padding: 8px 12px; }
+        QMenuBar::item:selected { background-color: #333333; }
+        QMenu { background-color: #252526; border: 1px solid #454545; }
+        QMenu::item:selected { background-color: #094771; }
+        QSplitter::handle { background-color: #2d2d2d; }
+        QTreeWidget { background-color: #252526; border: none; border-left: 1px solid #333333; alternate-background-color: #2a2a2d; }
+        QTreeWidget::item { height: 32px; padding-left: 5px; }
+        QTreeWidget::item:selected { background-color: #37373d; color: #ffffff; border-left: 3px solid #007acc; }
+        QHeaderView::section { background-color: #252526; color: #858585; padding: 8px; border: none; border-bottom: 1px solid #333333; font-weight: bold; }
+        QScrollBar:vertical { border: none; background: #252526; width: 10px; margin: 0px; }
+        QScrollBar::handle:vertical { background: #424242; min-height: 20px; border-radius: 5px; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
+    )";
+}
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
 
-    // 依然需要先配置并连接数据库
+    // 1. 关键：强制使用 Fusion 风格，解决 Linux/Windows 默认白色底色问题
+    a.setStyle(QStyleFactory::create("Fusion"));
+
+    // 2. 加载样式表
+    a.setStyleSheet(loadStyleSheet());
+
+    // 3. 连接数据库
     DatabaseConfig config;
     config.hostname = "localhost";
     config.username = "admin";
@@ -28,115 +65,10 @@ int main(int argc, char *argv[]) {
     config.database = "DatabaseKnowledgeGraph";
 
     if (DatabaseConnection::connect(config)) {
-        //runAttributeLogicTest();
-
         MainWindow w;
         w.show();
         return a.exec();
-       // return 0;
-
     }
 
     return -1;
-}
-
-
-void runAttributeLogicTest() {
-    qDebug() << "\n==================== 开始属性表逻辑测试 ====================";
-
-    // 1. 准备环境：我们需要一个有效的 ontology_id 和 node_id
-    int testOntologyId = 1; // 假设 ID 为 1 的本体存在（由 test.sql 插入）
-
-    // --- 测试场景 A: 节点属性 ---
-    qDebug() << "👉 [场景 A] 测试节点属性...";
-
-    // A1. 创建一个测试节点
-    GraphNode node;
-    node.ontologyId = testOntologyId;
-    node.name = "属性测试节点_" + QString::number(QDateTime::currentMSecsSinceEpoch()); // 随机名防止冲突
-    node.nodeType = "Test";
-
-    if (NodeRepository::addNode(node)) {
-        qDebug() << "   Step 1: 节点创建成功, ID =" << node.id;
-
-        // A2. 给节点添加属性
-        Attribute nodeAttr;
-        nodeAttr.nodeId = node.id;       // 关键：设置 nodeId
-        nodeAttr.relationId = -1;        // 关键：relationId 置空
-        nodeAttr.attrName = "重要度";
-        nodeAttr.attrValue = "高";
-        nodeAttr.attrType = "String";
-
-        if (AttributeRepository::addAttribute(nodeAttr)) {
-            qDebug() << "   Step 2: 节点属性添加成功, AttrID =" << nodeAttr.id;
-        } else {
-            qCritical() << "❌ 节点属性添加失败！";
-        }
-
-        // A3. 验证查询 (使用 "NODE" 开关)
-        QList<Attribute> results = AttributeRepository::getAttributesForEntity("NODE", node.id);
-        bool found = false;
-        for (const auto& attr : results) {
-            if (attr.attrName == "重要度" && attr.attrValue == "高") {
-                found = true;
-                qDebug() << "   Step 3: 查询验证成功！读出的 nodeId =" << attr.nodeId;
-                break;
-            }
-        }
-        if (!found) qCritical() << "❌ 查询失败：未找到刚插入的节点属性";
-    }
-
-    // --- 测试场景 B: 关系属性 ---
-    qDebug() << "\n👉 [场景 B] 测试关系属性...";
-
-    // B1. 创建两个节点用于建立关系
-    GraphNode n1, n2;
-    n1.ontologyId = testOntologyId; n1.name = "N1_" + QString::number(qrand()); n1.nodeType="T";
-    n2.ontologyId = testOntologyId; n2.name = "N2_" + QString::number(qrand()); n2.nodeType="T";
-    NodeRepository::addNode(n1);
-    NodeRepository::addNode(n2);
-
-    // B2. 创建关系
-    GraphEdge edge;
-    edge.ontologyId = testOntologyId;
-    edge.sourceId = n1.id;
-    edge.targetId = n2.id;
-    edge.relationType = "TestLink";
-
-    if (RelationshipRepository::addRelationship(edge)) {
-        qDebug() << "   Step 1: 关系创建成功, ID =" << edge.id;
-
-        // B3. 给关系添加属性
-        Attribute relAttr;
-        relAttr.nodeId = -1;             // 关键：nodeId 置空
-        relAttr.relationId = edge.id;    // 关键：设置 relationId
-        relAttr.attrName = "连接强度";
-        relAttr.attrValue = "0.95";
-        relAttr.attrType = "Float";
-
-        if (AttributeRepository::addAttribute(relAttr)) {
-            qDebug() << "   Step 2: 关系属性添加成功, AttrID =" << relAttr.id;
-        }
-
-        // B4. 验证查询 (使用 "RELATION" 开关)
-        QList<Attribute> results = AttributeRepository::getAttributesForEntity("RELATION", edge.id);
-        bool found = false;
-        for (const auto& attr : results) {
-            // 验证 attrName 和 attrValue，同时也验证 relationId 是否正确回填
-            if (attr.attrName == "连接强度" && attr.relationId == edge.id) {
-                found = true;
-                qDebug() << "   Step 3: 查询验证成功！读出的 relationId =" << attr.relationId;
-                break;
-            }
-        }
-        if (!found) qCritical() << "❌ 查询失败：未找到刚插入的关系属性";
-
-        // B5. 清理测试数据 (级联删除测试)
-        NodeRepository::deleteNode(node.id);
-        NodeRepository::deleteNode(n1.id); // 删除 N1 会自动删除 edge，以及 edge 的属性
-        NodeRepository::deleteNode(n2.id);
-        qDebug() << "   Step 4: 测试数据已清理";
-    }
-
-    qDebug() << "==================== 测试结束 ====================\n";
 }
