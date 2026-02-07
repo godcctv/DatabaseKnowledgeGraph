@@ -13,7 +13,7 @@
 #include <QRadialGradient>
 #include <QGraphicsDropShadowEffect>
 #include <QGraphicsLineItem>
-
+#include <QHeaderView>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -36,10 +36,24 @@ MainWindow::MainWindow(QWidget *parent)
     // 3. 初始化属性面板列头
     ui->propertyPanel->setHeaderLabels(QStringList() << "ID" << "名称" << "类型");
 
-    ui->splitter->setStretchFactor(0, 4);
-    ui->splitter->setStretchFactor(1, 1);
-    // 设置右侧面板的最大宽度，防止它太宽
-    ui->propertyPanel->setMaximumWidth(400);
+    // 设置列数 (确保有3列)
+    ui->propertyPanel->setColumnCount(3);
+
+    // 0列 (ID): 固定宽度 40像素，足够显示 1-3 位数字
+    ui->propertyPanel->header()->setSectionResizeMode(0, QHeaderView::Fixed);
+    ui->propertyPanel->setColumnWidth(0, 40);
+
+    // 1列 (名称): 自动拉伸 (Stretch)，占据剩余所有空间
+    ui->propertyPanel->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+
+    // 2列 (类型): 根据内容调整大小 (ResizeToContents)
+    ui->propertyPanel->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+
+    // 去掉表头的点击排序功能（可选，防止误触）
+    ui->propertyPanel->header()->setSectionsClickable(false);
+
+    ui->splitter->setStretchFactor(0, 7);
+    ui->splitter->setStretchFactor(1, 2);
 
     // 4. 建立连接
     setupConnections();
