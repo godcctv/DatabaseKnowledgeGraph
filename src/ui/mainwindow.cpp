@@ -18,6 +18,8 @@
 #include <QGraphicsLineItem>
 #include <QHeaderView>
 #include <QTimer>
+#include <QWheelEvent>
+#include <QtMath>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -29,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 2. 初始化可视化场景
     m_scene = new QGraphicsScene(this);
-    m_scene->setSceneRect(-2000, -2000, 4000, 4000);
+    m_scene->setSceneRect(-5000, -5000, 10000, 10000);
     ui->graphicsView->setScene(m_scene);
 
     // 优化渲染质量
@@ -38,6 +40,17 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform);
     ui->graphicsView->setBackgroundBrush(QColor("#1e1e1e"));
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+
+    // 允许鼠标拖拽画布（像地图一样平移）
+    ui->graphicsView->setDragMode(QGraphicsView::ScrollHandDrag);
+    // 隐藏滚动条（可选，看起来更简洁）
+    ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    // 设置缩放锚点为鼠标位置（缩放时以鼠标为中心，而不是画布中心）
+    ui->graphicsView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+    ui->graphicsView->setResizeAnchor(QGraphicsView::AnchorViewCenter);
+
+    ui->graphicsView->viewport()->installEventFilter(this);
 
     // 3. 初始化属性面板列头
     ui->propertyPanel->setHeaderLabels(QStringList() << "ID" << "名称" << "类型");
@@ -48,8 +61,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->propertyPanel->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     ui->propertyPanel->header()->setSectionsClickable(false);
 
-    ui->splitter->setStretchFactor(0, 7);
-    ui->splitter->setStretchFactor(1, 2);
+    // 设置分割器比例
+    ui->splitter->setStretchFactor(0, 7); // 画布占 70%
+    ui->splitter->setStretchFactor(1, 3); // 属性栏占 30%
 
     // --- 初始化力导向布局 ---
     m_layout = new ForceDirectedLayout(this);
@@ -62,7 +76,7 @@ MainWindow::MainWindow(QWidget *parent)
     // 4. 建立连接
     setupConnections();
     updateStatusBar();
-
+    ui->graphicsView->centerOn(0, 0);
     // 5. 加载数据
     if (DatabaseConnection::isConnected()) {
         loadInitialData();
@@ -91,8 +105,6 @@ void MainWindow::loadInitialData() {
 }
 
 void MainWindow::setupConnections() {
-    // 菜单栏/工具栏 Action 连接
-    // 请确保 UI 文件中确实有这些 action，或者将其改为实际的名字 (如 action_2)
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::onActionAddNodeTriggered);
     connect(ui->actionDelete, &QAction::triggered, this, &MainWindow::onActionDeleteTriggered);
 
@@ -187,7 +199,7 @@ void MainWindow::onNodeDeleted(int nodeId) {
     for (QGraphicsItem *item : itemsToDelete) {
         VisualNode* vNode = qgraphicsitem_cast<VisualNode*>(item);
         if (vNode && m_layout) {
-            m_layout->removeNode(vNode); // 🔥 从算法中移除
+            m_layout->removeNode(vNode);
         }
         m_scene->removeItem(item);
         delete item;
@@ -324,7 +336,7 @@ void MainWindow::onRelationshipDeleted(int edgeId) {
                 if (m_layout) {
                     m_layout->removeEdge(edge);
                 }
-                
+
                 m_scene->removeItem(edge);
                 delete edge;
                 break;
@@ -332,4 +344,27 @@ void MainWindow::onRelationshipDeleted(int edgeId) {
         }
     }
     ui->statusbar->showMessage("关系已删除", 3000);
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
+    // 拦截 GraphicsView 视口的滚轮事件
+    if (obj == ui->graphicsView->viewport() && event->type() == QEvent::Wheel) {
+        QWheelEvent *wheelEvent = static_cast<QWheelEvent*>(event);
+
+        // 检查是否按住了 Ctrl 键
+        if (wheelEvent->modifiers() & Qt::ControlModifier) {
+            const double scaleFactor = 1.15; // 缩放倍率
+            if (wheelEvent->angleDelta().y() > 0) {
+                // 向上滚：放大
+                ui->graphicsView->scale(scaleFactor, scaleFactor);
+            } else {
+                // 向下滚：缩小
+                ui->graphicsView->scale(1.0 / scaleFactor, 1.0 / scaleFactor);
+            }
+            // 返回 true 表示事件已被处理，不再传递给默认的滚动条逻辑
+            return true;
+        }
+    }
+    // 其他事件交给父类处理
+    return QMainWindow::eventFilter(obj, event);
 }

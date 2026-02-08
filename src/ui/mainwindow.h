@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QGraphicsScene>
+#include <QEvent>
 #include "../business/GraphEditor.h" // 引入业务层
 
 
@@ -11,6 +12,7 @@ class ForceDirectedLayout;
 class QTimer;
 class VisualNode;
 class VisualEdge;
+class QGraphicsItem;
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -21,8 +23,13 @@ class MainWindow : public QMainWindow {
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    // 提供给外部添加图元的接口
+    void addNodeToScene(VisualNode* node);
+    void addEdgeToScene(VisualEdge* edge);
 
     void onActionDeleteRelationshipTriggered();
+protected:
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
     void updateStatusBar();
