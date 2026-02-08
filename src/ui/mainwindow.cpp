@@ -4,6 +4,7 @@
 #include "addedgedialog.h"
 #include "VisualNode.h"
 #include "VisualEdge.h"
+#include"../business/ForceDirectedLayout.h"
 #include "../database/DatabaseConnection.h"
 #include "../database/RelationshipRepository.h"
 #include <QGraphicsTextItem>
@@ -56,6 +57,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->splitter->setStretchFactor(0, 7);
     ui->splitter->setStretchFactor(1, 2);
 
+    // 初始化布局算法
+    m_layout = new ForceDirectedLayout(this);
+
+    // 初始化并启动定时器
+    m_timer = new QTimer(this);
+    connect(m_timer, &QTimer::timeout, m_layout, &ForceDirectedLayout::calculate);
+    m_timer->start(30); // 30ms 刷新一次
     // 4. 建立连接
     setupConnections();
     updateStatusBar();

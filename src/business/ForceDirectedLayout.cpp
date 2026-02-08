@@ -6,26 +6,27 @@
 #include <QDebug>
 
 ForceDirectedLayout::ForceDirectedLayout(QObject *parent) : QObject(parent) {
-    // 初始化参数
-    m_stiffness = 0.08;      // 弹性系数 (拉力)
-    m_repulsion = 20000.0;   // 斥力强度 (推力)
-    m_damping = 0.90;        // 阻尼 (0.0-1.0, 越小停得越快)
+    // --- 物理参数初始化 ---
+    m_stiffness = 0.08;      // 弹性系数 (拉力): 越大线越紧
+    m_repulsion = 20000.0;   // 斥力强度 (推力): 越大节点分得越开
+    m_damping = 0.90;        // 阻尼 (0.0-1.0): 越小停得越快
     m_idealLength = 150.0;   // 理想边长
     m_centerAttraction = 0.02; // 向心力
-    m_maxVelocity = 50.0;    // 最大速度
+    m_maxVelocity = 50.0;    // 最大速度限制
 }
 
 void ForceDirectedLayout::addNode(VisualNode* node) {
     if (!m_nodes.contains(node)) {
         m_nodes.append(node);
         m_displacements[node] = QPointF(0, 0);
-        qDebug() << "Layout: Added node" << node->getName();
+        qDebug() << "Layout: Node added. Total nodes:" << m_nodes.size();
     }
 }
 
 void ForceDirectedLayout::addEdge(VisualEdge* edge) {
     if (!m_edges.contains(edge)) {
         m_edges.append(edge);
+        qDebug() << "Layout: Edge added. Total edges:" << m_edges.size();
     }
 }
 
@@ -47,11 +48,10 @@ void ForceDirectedLayout::clear() {
 void ForceDirectedLayout::calculate() {
     if (m_nodes.isEmpty()) return;
 
-    // --- 调试输出: 证明算法正在运行 ---
-    // 每 60 帧打印一次，避免刷屏
+    // --- 调试日志 (每 60 帧打印一次，证明算法在跑) ---
     static int frameCounter = 0;
     if (frameCounter++ > 60) {
-        qDebug() << "Layout: Physics running for" << m_nodes.size() << "nodes...";
+        qDebug() << "Layout: Physics running... Nodes:" << m_nodes.size() << "Edges:" << m_edges.size();
         frameCounter = 0;
     }
 
@@ -60,7 +60,7 @@ void ForceDirectedLayout::calculate() {
         m_displacements[node] = QPointF(0, 0);
     }
 
-    // 2. 计算斥力 (Repulsion) - 让所有节点互相远离
+    // 2. 计算斥力 (Repulsion) - 所有节点之间
     for (int i = 0; i < m_nodes.size(); ++i) {
         for (int j = i + 1; j < m_nodes.size(); ++j) {
             VisualNode* u = m_nodes[i];
@@ -69,8 +69,9 @@ void ForceDirectedLayout::calculate() {
             QVector2D vec(u->pos() - v->pos());
             double dist = vec.length();
 
+            // 防止重叠除零
             if (dist < 1.0) {
-                vec = QVector2D(1.0, 1.0); // 防止重叠除零
+                vec = QVector2D(1.0, 1.0);
                 dist = 1.0;
             }
 
@@ -82,8 +83,10 @@ void ForceDirectedLayout::calculate() {
         }
     }
 
-    // 3. 计算引力 (Attraction) - 拉近有连线的节点
+    // 3. 计算引力 (Attraction) - 仅在连接的边之间
     for (VisualEdge* edge : m_edges) {
+        // 注意：请确保 VisualEdge 类中有 getSourceNode() 和 getDestNode() 方法
+        // 如果你的方法名是 sourceNode()，请在这里修改
         VisualNode* u = edge->getSourceNode();
         VisualNode* v = edge->getDestNode();
 
@@ -92,9 +95,7 @@ void ForceDirectedLayout::calculate() {
         QVector2D vec(u->pos() - v->pos());
         double dist = vec.length();
 
-        // 弹簧力：距离越远拉力越大，距离过近则产生推力
         double force = (dist - m_idealLength) * m_stiffness;
-
         QVector2D displacement = vec.normalized() * force;
 
         m_displacements[u] -= displacement.toPointF();
@@ -104,12 +105,12 @@ void ForceDirectedLayout::calculate() {
     // 4. 应用位移
     QPointF center(0, 0);
     for (VisualNode* node : m_nodes) {
-        // 如果正在拖拽，跳过物理计算
+        // 如果用户正在拖拽，不要更新位置
         if (node->scene() && node->scene()->mouseGrabberItem() == node) {
             continue;
         }
 
-        // 向心力 (防止飞出屏幕)
+        // 向心力
         QVector2D vecToCenter(center - node->pos());
         m_displacements[node] += vecToCenter.toPointF() * m_centerAttraction;
 
@@ -119,10 +120,10 @@ void ForceDirectedLayout::calculate() {
             m_displacements[node] = (m_displacements[node] / len) * m_maxVelocity;
         }
 
-        // 阻尼 (让它停下来)
+        // 阻尼
         m_displacements[node] *= m_damping;
 
-        // 更新位置
+        // 更新位置 (如果位移极小就忽略，节省性能)
         if (len > 0.1) {
             node->setPos(node->pos() + m_displacements[node]);
         }
