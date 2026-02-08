@@ -15,6 +15,7 @@
 #include <QGraphicsDropShadowEffect>
 #include <QGraphicsLineItem>
 #include <QHeaderView>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)

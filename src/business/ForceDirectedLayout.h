@@ -18,21 +18,24 @@ public:
     void removeNode(VisualNode* node);
     void removeEdge(VisualEdge* edge);
     void clear();
+
+    // 核心计算函数
     void calculate();
 
 private:
     QList<VisualNode*> m_nodes;
     QList<VisualEdge*> m_edges;
 
-    // 参数
-    double m_stiffness = 0.08;      // 弹性系数
-    double m_repulsion = 10000.0;   // 斥力强度
-    double m_damping = 0.85;        // 阻尼
-    double m_idealLength = 150.0;   // 理想边长
-    double m_centerAttraction = 0.05; // 向心力
-    double m_maxVelocity = 50.0;    // 速度限制
+    // --- 物理参数 (必须在这里定义，.cpp 才能用) ---
+    double m_stiffness;      // 弹性系数
+    double m_repulsion;      // 斥力强度
+    double m_damping;        // 阻尼
+    double m_idealLength;    // 理想边长
+    double m_centerAttraction; // 向心力
+    double m_maxVelocity;    // 最大速度
 
+    // 记录上一帧的力/位移
     QMap<VisualNode*, QPointF> m_displacements;
 };
 
-#endif
+#endif // FORCEDIRECTEDLAYOUT_H

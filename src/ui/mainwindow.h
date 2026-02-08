@@ -4,6 +4,12 @@
 #include <QMainWindow>
 #include <QGraphicsScene>
 #include "../business/GraphEditor.h" // 引入业务层
+#include "VisualNode.h"
+#include "VisualEdge.h"
+
+class GraphEditor;
+class ForceDirectedLayout;  // 必须加这行
+class QTimer;               // 必须加这行
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -37,6 +43,8 @@ private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;
     QGraphicsScene *m_scene;
+    ForceDirectedLayout* m_layout;
+    QTimer* m_timer;
 
     QGraphicsItem* findItemById(int nodeId);
 
