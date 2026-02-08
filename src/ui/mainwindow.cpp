@@ -25,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 2. 初始化可视化场景 (为第5周做准备，防止崩溃)
     m_scene = new QGraphicsScene(this);
+    m_scene->setSceneRect(-2000, -2000, 4000, 4000);
     ui->graphicsView->setScene(m_scene);
 
     ui->graphicsView->setRenderHint(QPainter::Antialiasing);           // 图元抗锯齿
