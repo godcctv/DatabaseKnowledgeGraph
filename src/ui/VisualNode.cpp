@@ -46,6 +46,8 @@ VisualNode::VisualNode(int id, QString name, QString type, qreal x, qreal y)
 
     // 6. 交互设置
     setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemSendsScenePositionChanges);
+    setCacheMode(DeviceCoordinateCache);    // 优化绘制性能
+    setZValue(1);
     setCursor(Qt::PointingHandCursor);
     setData(0, id);
 

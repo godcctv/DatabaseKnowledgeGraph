@@ -5,6 +5,12 @@
 #include <QGraphicsScene>
 #include "../business/GraphEditor.h" // 引入业务层
 
+
+class GraphEditor;
+class ForceDirectedLayout;
+class QTimer;
+class VisualNode;
+class VisualEdge;
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -37,6 +43,8 @@ private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;
     QGraphicsScene *m_scene;
+    ForceDirectedLayout* m_layout;
+    QTimer* m_timer;
 
     QGraphicsItem* findItemById(int nodeId);
 
