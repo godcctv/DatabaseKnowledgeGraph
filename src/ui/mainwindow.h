@@ -4,13 +4,13 @@
 #include <QMainWindow>
 #include <QGraphicsScene>
 #include "../business/GraphEditor.h" // 引入业务层
-#include "VisualNode.h"
-#include "VisualEdge.h"
+
 
 class GraphEditor;
-class ForceDirectedLayout;  // 必须加这行
-class QTimer;               // 必须加这行
-
+class ForceDirectedLayout;
+class QTimer;
+class VisualNode;
+class VisualEdge;
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE

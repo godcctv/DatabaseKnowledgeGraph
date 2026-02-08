@@ -5,6 +5,7 @@ set(SOURCES
         # 业务逻辑层
         business/GraphEditor.cpp
         business/QueryEngine.cpp
+        business/ForceDirectedLayout.cpp
 
         # 数据库层
         database/DatabaseConnection.cpp
@@ -27,6 +28,7 @@ set(HEADERS
         business/GraphEditor.h
         business/QueryEngine.h
         business/EditorCommand.h
+        business/ForceDirectedLayout.h
 
         # 模型头文件
         model/GraphNode.h
