@@ -57,6 +57,7 @@ set(FORMS
         ui/VisualNode.cpp
         ui/VisualEdge.h
         ui/VisualEdge.cpp
+        business/ForceDirectedLayout.h
 
 )
 
