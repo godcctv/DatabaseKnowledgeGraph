@@ -22,6 +22,7 @@
 #include <QWheelEvent>
 #include <QToolBar>
 #include <QtMath>
+#include <QRandomGenerator>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -38,10 +39,38 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 优化渲染质量
     ui->graphicsView->setRenderHint(QPainter::Antialiasing);
-    ui->graphicsView->setRenderHint(QPainter::TextAntialiasing);
     ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform);
-    ui->graphicsView->setBackgroundBrush(QColor("#1e1e1e"));
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+
+    // 1. 创建一个足够大的画布 (1000x1000 像素，之后会自动平铺)
+    QPixmap starPixmap(1000, 1000);
+    // 2. 填充深邃的夜空底色 (深蓝黑色)
+    starPixmap.fill(QColor("#0B0D17"));
+
+    QPainter painter(&starPixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    // 3. 随机生成星星
+    int starCount = 200; // 星星数量
+    for (int i = 0; i < starCount; ++i) {
+        // 随机坐标
+        int x = QRandomGenerator::global()->bounded(1000);
+        int y = QRandomGenerator::global()->bounded(1000);
+
+        // 随机透明度 (50~255)，模拟星星闪烁亮暗不同
+        int alpha = QRandomGenerator::global()->bounded(50, 255);
+        QColor starColor(255, 255, 255, alpha);
+
+        // 随机大小 (1~3像素)
+        int size = QRandomGenerator::global()->bounded(1, 3);
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(starColor);
+        painter.drawEllipse(x, y, size, size);
+    }
+
+    // 4. 将生成的星空图设置为背景刷
+    ui->graphicsView->setBackgroundBrush(QBrush(starPixmap));
 
     // 允许鼠标拖拽画布（像地图一样平移）
     ui->graphicsView->setDragMode(QGraphicsView::ScrollHandDrag);
@@ -411,7 +440,7 @@ void MainWindow::onQueryFullGraph() {
             dst->addEdge(vEdge, false);
         }
     }
-    
+
     ui->statusbar->showMessage(QString("全图模式：已加载 %1 个节点").arg(nodes.size()));
 }
 
