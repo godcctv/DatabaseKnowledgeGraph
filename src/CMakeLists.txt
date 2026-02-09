@@ -18,7 +18,6 @@ set(SOURCES
         ui/mainwindow.cpp
         ui/addnodedialog.cpp
         ui/addedgedialog.cpp
-
         ui/VisualNode.cpp
         ui/VisualEdge.cpp
 )
@@ -49,6 +48,7 @@ set(HEADERS
         ui/addedgedialog.h
         ui/VisualNode.h
         ui/VisualEdge.h
+        ui/QueryDialog.h
 )
 
 set(FORMS
@@ -60,6 +60,7 @@ set(FORMS
         ui/VisualEdge.h
         ui/VisualEdge.cpp
         business/ForceDirectedLayout.h
+        ui/QueryDialog.h
 
 )
 

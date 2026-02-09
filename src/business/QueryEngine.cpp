@@ -1,58 +1,77 @@
 #include "QueryEngine.h"
 #include "../database/NodeRepository.h"
 #include "../database/RelationshipRepository.h"
-#include "../database/AttributeRepository.h"
 #include <QQueue>
 #include <QSet>
-#include <QDebug>
+#include <QMap>
 
-// --- 基础检索实现 ---
+QueryEngine::QueryEngine(QObject *parent) : QObject(parent) {}
 
 QList<GraphNode> QueryEngine::getAllNodes(int ontologyId) {
-    // 调用仓库层获取指定本体下的所有节点
     return NodeRepository::getAllNodes(ontologyId);
 }
 
 QList<GraphEdge> QueryEngine::getAllRelationships(int ontologyId) {
-    // 调用仓库层获取指定本体下的所有关系
-    return RelationshipRepository::getEdgesByOntology(ontologyId);
+    return RelationshipRepository::getAllRelationships(ontologyId);
 }
 
 GraphNode QueryEngine::getNodeById(int nodeId) {
-    // 调用仓库层根据 ID 获取节点对象
     return NodeRepository::getNodeById(nodeId);
 }
 
-// --- 高级检索实现 ---
-
-QList<GraphNode> QueryEngine::queryByAttribute(const QString& attrName, const QString& attrValue) {
-    QList<GraphNode> results;
-
-    QList<Attribute> attrs = AttributeRepository::getAllAttributesByType("NODE");
-
-    for (const auto& attr : attrs) {
-        if (attr.attrName == attrName && attr.attrValue == attrValue) {
-            if (attr.nodeId > 0) {
-                GraphNode node = NodeRepository::getNodeById(attr.nodeId);
-                if (node.isValid()) results.append(node);
-            }
+QList<GraphEdge> QueryEngine::getRelatedRelationships(int nodeId) {
+    // 获取本体1的所有关系，然后筛选 (实际项目中应由数据库直接筛选)
+    QList<GraphEdge> allEdges = RelationshipRepository::getAllRelationships(1);
+    QList<GraphEdge> result;
+    for (const auto& edge : allEdges) {
+        if (edge.sourceId == nodeId || edge.targetId == nodeId) {
+            result.append(edge);
         }
     }
-    return results;
+    return result;
 }
 
-// --- 图算法查询实现 ---
+QList<GraphNode> QueryEngine::queryByAttribute(const QString& attrName, const QString& attrValue) {
+    // 文档设计中属性是单独的表，但为了简化，我们这里暂时搜索 Node 的 name 或 description
+    // 或者解析 properties JSON 字段。
+    // 这里实现一个简化的：如果 attrName 是 "name"，就搜名字
+
+    QList<GraphNode> allNodes = getAllNodes(1);
+    QList<GraphNode> result;
+
+    for (const auto& node : allNodes) {
+        if (attrName == "name") {
+            if (node.name.contains(attrValue, Qt::CaseInsensitive)) {
+                result.append(node);
+            }
+        } else if (attrName == "type") {
+            if (node.nodeType.contains(attrValue, Qt::CaseInsensitive)) {
+                result.append(node);
+            }
+        }
+        // 可以在这里扩展 JSON 属性的搜索
+    }
+    return result;
+}
 
 QList<int> QueryEngine::findPath(int sourceId, int targetId) {
-    if (sourceId == targetId) return {sourceId};
+    QList<int> path;
+    if (sourceId == targetId) return path;
 
-    // 使用 BFS（广度优先搜索）寻找最短路径
+    // 1. 获取所有边构建图
+    QList<GraphEdge> edges = getAllRelationships(1);
+    QMap<int, QList<int>> adj;
+    for (const auto& edge : edges) {
+        adj[edge.sourceId].append(edge.targetId);
+        adj[edge.targetId].append(edge.sourceId); // 无向图视角的路径
+    }
+
+    // 2. BFS
     QQueue<int> queue;
     queue.enqueue(sourceId);
-
-    QMap<int, int> parentMap; // 记录路径：当前节点 -> 父节点
     QSet<int> visited;
     visited.insert(sourceId);
+    QMap<int, int> predecessors; // 记录前驱节点
 
     bool found = false;
     while (!queue.isEmpty()) {
@@ -62,65 +81,25 @@ QList<int> QueryEngine::findPath(int sourceId, int targetId) {
             break;
         }
 
-        // 获取当前节点的所有邻居关系
-        QList<GraphEdge> edges = RelationshipRepository::getEdgesByNode(current);
-        for (const auto& edge : edges) {
-            int neighbor = (edge.sourceId == current) ? edge.targetId : edge.sourceId;
-            if (!visited.contains(neighbor)) {
-                visited.insert(neighbor);
-                parentMap[neighbor] = current;
-                queue.enqueue(neighbor);
-            }
-        }
-    }
-
-    // 回溯构造路径
-    QList<int> path;
-    if (found) {
-        int curr = targetId;
-        while (curr != sourceId) {
-            path.prepend(curr);
-            curr = parentMap[curr];
-        }
-        path.prepend(sourceId);
-    }
-    return path;
-}
-
-void QueryEngine::getSubgraph(int nodeId, int depth, QList<GraphNode>& outNodes, QList<GraphEdge>& outEdges) {
-    if (depth < 0) return;
-
-    QSet<int> visitedNodes;
-    QSet<int> visitedEdges;
-    
-    // 使用 BFS 进行层级遍历
-    QQueue<std::pair<int, int>> queue; // 节点 ID, 当前深度
-    queue.enqueue({nodeId, 0});
-
-    while (!queue.isEmpty()) {
-        auto [currId, currDepth] = queue.dequeue();
-        
-        // 记录节点
-        if (!visitedNodes.contains(currId)) {
-            GraphNode node = NodeRepository::getNodeById(currId);
-            if (node.isValid()) {
-                outNodes.append(node);
-                visitedNodes.insert(currId);
-            }
-        }
-
-        // 如果未达到最大深度，继续向外扩展
-        if (currDepth < depth) {
-            QList<GraphEdge> edges = RelationshipRepository::getEdgesByNode(currId);
-            for (const auto& edge : edges) {
-                if (!visitedEdges.contains(edge.id)) {
-                    outEdges.append(edge);
-                    visitedEdges.insert(edge.id);
-                    
-                    int neighbor = (edge.sourceId == currId) ? edge.targetId : edge.sourceId;
-                    queue.enqueue({neighbor, currDepth + 1});
+        if (adj.contains(current)) {
+            for (int neighbor : adj[current]) {
+                if (!visited.contains(neighbor)) {
+                    visited.insert(neighbor);
+                    predecessors[neighbor] = current;
+                    queue.enqueue(neighbor);
                 }
             }
         }
     }
+
+    // 3. 回溯路径
+    if (found) {
+        int curr = targetId;
+        path.prepend(curr);
+        while (curr != sourceId) {
+            curr = predecessors[curr];
+            path.prepend(curr);
+        }
+    }
+    return path;
 }
