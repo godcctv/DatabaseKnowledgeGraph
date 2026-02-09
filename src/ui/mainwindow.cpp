@@ -56,14 +56,24 @@ MainWindow::MainWindow(QWidget *parent)
     ui->propertyPanel->setHeaderLabels(QStringList() << "ID" << "名称" << "类型");
     ui->propertyPanel->setColumnCount(3);
     ui->propertyPanel->header()->setSectionResizeMode(0, QHeaderView::Fixed);
-    ui->propertyPanel->setColumnWidth(0, 40);
+    ui->propertyPanel->setColumnWidth(0, 50);
+
+    // 名称列自适应拉伸 (Stretch)
     ui->propertyPanel->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+
+    // 类型列根据内容调整
     ui->propertyPanel->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+
+    // 禁止点击表头排序（可选）
     ui->propertyPanel->header()->setSectionsClickable(false);
 
-    // 设置分割器比例
-    ui->splitter->setStretchFactor(0, 7); // 画布占 70%
-    ui->splitter->setStretchFactor(1, 3); // 属性栏占 30%
+    // --- 【关键修改】 调整窗口分割比例 ---
+    // 设置右侧属性面板的最小宽度，死守底线，防止被挤压
+    ui->propertyPanel->setMinimumWidth(240);
+
+    // 设置初始比例：左边 3 份，右边 1 份
+    ui->splitter->setStretchFactor(0, 4);
+    ui->splitter->setStretchFactor(1, 1);
 
     // --- 初始化力导向布局 ---
     m_layout = new ForceDirectedLayout(this);

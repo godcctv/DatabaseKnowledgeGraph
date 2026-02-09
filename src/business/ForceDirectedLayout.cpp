@@ -8,11 +8,11 @@
 ForceDirectedLayout::ForceDirectedLayout(QObject *parent) : QObject(parent) {
     // --- 物理参数初始化 ---
     m_stiffness = 0.08;      // 弹性系数 (拉力): 越大线越紧
-    m_repulsion = 20000.0;   // 斥力强度 (推力): 越大节点分得越开
-    m_damping = 0.90;        // 阻尼 (0.0-1.0): 越小停得越快
-    m_idealLength = 150.0;   // 理想边长
-    m_centerAttraction = 0.02; // 向心力
-    m_maxVelocity = 50.0;    // 最大速度限制
+    m_repulsion = 800.0;   // 斥力强度 (推力): 越大节点分得越开
+    m_damping = 0.85;        // 阻尼 (0.0-1.0): 越小停得越快
+    m_idealLength = 120.0;   // 理想边长
+    m_centerAttraction = 0.04; // 向心力
+    m_maxVelocity = 30.0;    // 最大速度限制
 }
 
 void ForceDirectedLayout::addNode(VisualNode* node) {
