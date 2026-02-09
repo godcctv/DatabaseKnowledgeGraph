@@ -381,6 +381,7 @@ void MainWindow::onQueryFullGraph() {
     m_layout->clear();
     ui->propertyPanel->clear();
 
+    m_timer->start(30);
     // 3. 添加所有节点和边
     for (const auto& node : nodes) {
         // 全图模式：随机位置，让力导向算法去跑
@@ -392,10 +393,7 @@ void MainWindow::onQueryFullGraph() {
         item->setText(2, node.nodeType);
     }
     for (const auto& edge : edges) {
-        // 需要查找指针来构建 VisualEdge，这里复用 drawEdge 逻辑需要先拿到 VisualNode
-        // 简单起见，我们重新实现这部分逻辑
         VisualEdge* vEdge = nullptr;
-        // 查找 source 和 target
         VisualNode* src = nullptr;
         VisualNode* dst = nullptr;
         foreach(QGraphicsItem* item, m_scene->items()) {
@@ -413,9 +411,7 @@ void MainWindow::onQueryFullGraph() {
             dst->addEdge(vEdge, false);
         }
     }
-
-    // 4. 开启布局算法
-    m_timer->start(30);
+    
     ui->statusbar->showMessage(QString("全图模式：已加载 %1 个节点").arg(nodes.size()));
 }
 
