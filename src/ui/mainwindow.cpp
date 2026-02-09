@@ -4,11 +4,12 @@
 #include "addedgedialog.h"
 #include "VisualNode.h"
 #include "VisualEdge.h"
+#include "QueryDialog.h"
 #include "../business/ForceDirectedLayout.h"  // 确保路径正确
 #include "../database/DatabaseConnection.h"
 #include "../database/RelationshipRepository.h"
-#include "../business/GraphEditor.h"         // 确保包含 GraphEditor 定义
-
+#include "../business/GraphEditor.h"
+#include "../business/QueryEngine.h"
 #include <QGraphicsTextItem>
 #include <QCoreApplication>
 #include <QDebug>
@@ -19,6 +20,7 @@
 #include <QHeaderView>
 #include <QTimer>
 #include <QWheelEvent>
+#include <QToolBar>
 #include <QtMath>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -28,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 1. 初始化后端
     m_graphEditor = new GraphEditor(this);
-
+    m_queryEngine = new QueryEngine(this);
     // 2. 初始化可视化场景
     m_scene = new QGraphicsScene(this);
     m_scene->setSceneRect(-5000, -5000, 10000, 10000);
@@ -64,10 +66,9 @@ MainWindow::MainWindow(QWidget *parent)
     // 类型列根据内容调整
     ui->propertyPanel->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 
-    // 禁止点击表头排序（可选）
+    // 禁止点击表头排序（
     ui->propertyPanel->header()->setSectionsClickable(false);
 
-    // --- 【关键修改】 调整窗口分割比例 ---
     // 设置右侧属性面板的最小宽度，死守底线，防止被挤压
     ui->propertyPanel->setMinimumWidth(240);
 
@@ -85,6 +86,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 4. 建立连接
     setupConnections();
+    setupToolbar();
     updateStatusBar();
     ui->graphicsView->centerOn(0, 0);
     // 5. 加载数据
@@ -98,20 +100,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::loadInitialData() {
-    ui->statusbar->showMessage("正在从数据库加载图谱数据...");
-    QCoreApplication::processEvents();
-
-    QList<GraphNode> nodes = NodeRepository::getAllNodes(1);
-    for (const auto& node : nodes) {
-        onNodeAdded(node);
-    }
-
-    QList<GraphEdge> edges = RelationshipRepository::getAllRelationships(1);
-    for (const auto& edge : edges) {
-        onRelationshipAdded(edge);
-    }
-
-    ui->statusbar->showMessage(QString("已加载 %1 个节点").arg(nodes.size()));
+    onQueryFullGraph();
 }
 
 void MainWindow::setupConnections() {
@@ -164,29 +153,10 @@ void MainWindow::onActionDeleteTriggered() {
 }
 
 void MainWindow::onNodeAdded(const GraphNode& node) {
-    if (!m_scene) return;
-
-    // 创建可视化节点
-    VisualNode *visualNode = new VisualNode(node.id, node.name, node.nodeType, node.posX, node.posY);
-    m_scene->addItem(visualNode);
-
-    // 🔥 将新节点加入力导向布局算法管理 🔥
-    if (m_layout) {
-        m_layout->addNode(visualNode);
-    }
-
-    if (ui->statusbar) {
-        ui->statusbar->showMessage(QString("节点 %1 加载成功").arg(node.name), 3000);
-    }
-
-    if (ui && ui->propertyPanel) {
-        QTreeWidgetItem *item = new QTreeWidgetItem(ui->propertyPanel);
-        item->setText(0, QString::number(node.id));
-        item->setText(1, node.name);
-        item->setText(2, node.nodeType);
+    if (m_timer->isActive()) { // 只有在全图动态模式下才自动添加显示
+        drawNode(node.id, node.name, node.nodeType, node.posX, node.posY);
     }
 }
-
 void MainWindow::onNodeDeleted(int nodeId) {
     // 1. 删除右侧列表项
     for (int i = ui->propertyPanel->topLevelItemCount() - 1; i >= 0; --i) {
@@ -377,4 +347,272 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
     }
     // 其他事件交给父类处理
     return QMainWindow::eventFilter(obj, event);
+}
+
+void MainWindow::setupToolbar() {
+    QToolBar* toolbar = this->findChild<QToolBar*>("QueryToolbar");// 使用设计器里已有的，或者 addToolBar
+    if (!toolbar) toolbar = addToolBar("Query");
+
+    toolbar->addSeparator();
+
+    QAction* actFull = toolbar->addAction("全图");
+    connect(actFull, &QAction::triggered, this, &MainWindow::onQueryFullGraph);
+
+    QAction* actNode = toolbar->addAction("单节点");
+    actNode->setToolTip("先选中一个节点，然后点击此按钮查看关联");
+    connect(actNode, &QAction::triggered, this, &MainWindow::onQuerySingleNode);
+
+    QAction* actAttr = toolbar->addAction("属性查询");
+    connect(actAttr, &QAction::triggered, this, &MainWindow::onQueryAttribute);
+
+    QAction* actPath = toolbar->addAction("路径查询");
+    actPath->setToolTip("先选中两个节点，然后点击此按钮");
+    connect(actPath, &QAction::triggered, this, &MainWindow::onQueryPath);
+}
+
+// --- 1. 全图查询  ---
+void MainWindow::onQueryFullGraph() {
+    // 1. 获取数据
+    QList<GraphNode> nodes = m_queryEngine->getAllNodes(1);
+    QList<GraphEdge> edges = m_queryEngine->getAllRelationships(1);
+
+    // 2. 清空视图
+    m_scene->clear();
+    m_layout->clear();
+    ui->propertyPanel->clear();
+
+    // 3. 添加所有节点和边
+    for (const auto& node : nodes) {
+        // 全图模式：随机位置，让力导向算法去跑
+        drawNode(node.id, node.name, node.nodeType, rand() % 800 - 400, rand() % 600 - 300);
+        // 同时更新列表
+        QTreeWidgetItem *item = new QTreeWidgetItem(ui->propertyPanel);
+        item->setText(0, QString::number(node.id));
+        item->setText(1, node.name);
+        item->setText(2, node.nodeType);
+    }
+    for (const auto& edge : edges) {
+        // 需要查找指针来构建 VisualEdge，这里复用 drawEdge 逻辑需要先拿到 VisualNode
+        // 简单起见，我们重新实现这部分逻辑
+        VisualEdge* vEdge = nullptr;
+        // 查找 source 和 target
+        VisualNode* src = nullptr;
+        VisualNode* dst = nullptr;
+        foreach(QGraphicsItem* item, m_scene->items()) {
+            if (item->type() == VisualNode::Type) {
+                VisualNode* vn = qgraphicsitem_cast<VisualNode*>(item);
+                if (vn->getId() == edge.sourceId) src = vn;
+                if (vn->getId() == edge.targetId) dst = vn;
+            }
+        }
+        if (src && dst) {
+            vEdge = new VisualEdge(edge.id, edge.sourceId, edge.targetId, edge.relationType, src, dst);
+            m_scene->addItem(vEdge);
+            m_layout->addEdge(vEdge);
+            src->addEdge(vEdge, true);
+            dst->addEdge(vEdge, false);
+        }
+    }
+
+    // 4. 开启布局算法
+    m_timer->start(30);
+    ui->statusbar->showMessage(QString("全图模式：已加载 %1 个节点").arg(nodes.size()));
+}
+
+// --- 2. 单节点查询 ---
+void MainWindow::onQuerySingleNode() {
+    // 获取当前选中节点
+    QList<QGraphicsItem*> selected = m_scene->selectedItems();
+    int centerId = -1;
+    for (auto item : selected) {
+        if (item->type() == VisualNode::Type) {
+            centerId = qgraphicsitem_cast<VisualNode*>(item)->getId();
+            break;
+        }
+    }
+
+    if (centerId == -1) {
+        QMessageBox::warning(this, "提示", "请先在图中选中一个节点！");
+        return;
+    }
+
+    // 1. 查询数据
+    GraphNode centerNode = m_queryEngine->getNodeById(centerId);
+    QList<GraphEdge> relatedEdges = m_queryEngine->getRelatedRelationships(centerId);
+
+    // 2. 暂停力导向 (静态布局)
+    m_timer->stop();
+    m_scene->clear();
+    m_layout->clear(); // 清空算法中的数据引用
+
+    // 3. 绘制中心节点
+    drawNode(centerNode.id, centerNode.name, centerNode.nodeType, 0, 0);
+
+    // 4. 绘制周围节点 (圆形布局)
+    QSet<int> addedNodes;
+    addedNodes.insert(centerId);
+
+    int count = relatedEdges.size(); // 实际上可能是边数，这里近似处理
+    double radius = 200.0;
+    double angleStep = (2 * M_PI) / (count > 0 ? count : 1);
+    int currentIdx = 0;
+
+    for (const auto& edge : relatedEdges) {
+        int neighborId = (edge.sourceId == centerId) ? edge.targetId : edge.sourceId;
+
+        if (!addedNodes.contains(neighborId)) {
+            GraphNode neighbor = m_queryEngine->getNodeById(neighborId);
+
+            // 计算坐标
+            double x = radius * cos(currentIdx * angleStep);
+            double y = radius * sin(currentIdx * angleStep);
+
+            drawNode(neighbor.id, neighbor.name, neighbor.nodeType, x, y);
+            addedNodes.insert(neighborId);
+
+            // 手动画边 (不需要加入 m_layout)
+            // 这里为了简单，需重新查找 VisualNode 指针
+            // 实际项目中可以优化
+            currentIdx++;
+        }
+    }
+
+    // 重新遍历连接边
+    foreach(QGraphicsItem* item, m_scene->items()) {
+        if (item->type() == VisualNode::Type) {
+            VisualNode* vn = qgraphicsitem_cast<VisualNode*>(item);
+            if (vn->getId() != centerId) {
+                // 连接中心和它
+                VisualNode* centerV = nullptr;
+                // 找中心节点指针
+                foreach(QGraphicsItem* it, m_scene->items()) {
+                     if (it->type() == VisualNode::Type && qgraphicsitem_cast<VisualNode*>(it)->getId() == centerId) {
+                         centerV = qgraphicsitem_cast<VisualNode*>(it);
+                         break;
+                     }
+                }
+                if (centerV) {
+                    VisualEdge* edge = new VisualEdge(-1, centerId, vn->getId(), "related", centerV, vn);
+                    m_scene->addItem(edge);
+                    centerV->addEdge(edge, true);
+                    vn->addEdge(edge, false);
+                }
+            }
+        }
+    }
+
+    ui->graphicsView->centerOn(0, 0);
+    ui->statusbar->showMessage(QString("单节点查询：ID %1").arg(centerId));
+}
+
+// --- 3. 属性查询 ---
+void MainWindow::onQueryAttribute() {
+    QueryDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted) {
+        QString name = dialog.getAttrName();
+        QString value = dialog.getAttrValue();
+
+        QList<GraphNode> results = m_queryEngine->queryByAttribute(name, value);
+
+        if (results.isEmpty()) {
+            QMessageBox::information(this, "结果", "未找到匹配节点");
+            return;
+        }
+
+        // 停止布局，清空视图，只显示结果
+        m_timer->stop();
+        m_scene->clear();
+        m_layout->clear();
+
+        // 网格布局展示结果
+        int col = 0;
+        int row = 0;
+        int gap = 150;
+        int maxCols = qCeil(qSqrt(results.size()));
+
+        for (const auto& node : results) {
+            drawNode(node.id, node.name, node.nodeType, col * gap, row * gap);
+            col++;
+            if (col >= maxCols) {
+                col = 0;
+                row++;
+            }
+        }
+        ui->statusbar->showMessage(QString("属性查询：找到 %1 个结果").arg(results.size()));
+    }
+}
+
+// --- 4. 路径查询 ---
+void MainWindow::onQueryPath() {
+    QList<QGraphicsItem*> selected = m_scene->selectedItems();
+    QList<VisualNode*> nodes;
+    for (auto item : selected) {
+        if (item->type() == VisualNode::Type) {
+            nodes.append(qgraphicsitem_cast<VisualNode*>(item));
+        }
+    }
+
+    if (nodes.size() != 2) {
+        QMessageBox::warning(this, "提示", "请先选中两个节点（起点和终点）");
+        return;
+    }
+
+    int startId = nodes[0]->getId();
+    int endId = nodes[1]->getId();
+
+    QList<int> pathNodes = m_queryEngine->findPath(startId, endId);
+
+    if (pathNodes.isEmpty()) {
+        QMessageBox::information(this, "结果", "无路径连接");
+        return;
+    }
+
+    // 停止布局，清空
+    m_timer->stop();
+    m_scene->clear();
+    m_layout->clear();
+
+    // 线性布局绘制路径
+    int x = 0;
+    VisualNode* prevVNode = nullptr;
+
+    for (int nodeId : pathNodes) {
+        GraphNode node = m_queryEngine->getNodeById(nodeId);
+        // 调用 drawNode 创建 VisualNode
+        drawNode(node.id, node.name, node.nodeType, x, 0);
+
+        // 获取刚刚创建的 VisualNode (为了连线)
+        VisualNode* currVNode = nullptr;
+        foreach(QGraphicsItem* item, m_scene->items()) {
+            VisualNode* vn = qgraphicsitem_cast<VisualNode*>(item);
+            if (vn && vn->getId() == nodeId) {
+                currVNode = vn;
+                break;
+            }
+        }
+
+        if (prevVNode && currVNode) {
+            // 连线
+            VisualEdge* edge = new VisualEdge(-1, prevVNode->getId(), currVNode->getId(), "path", prevVNode, currVNode);
+            m_scene->addItem(edge);
+            prevVNode->addEdge(edge, true);
+            currVNode->addEdge(edge, false);
+        }
+
+        prevVNode = currVNode;
+        x += 200; // 间距
+    }
+
+    ui->statusbar->showMessage("路径查询完成");
+    ui->graphicsView->centerOn(x/2, 0);
+}
+
+// 辅助绘图函数
+void MainWindow::drawNode(int id, QString name, QString type, double x, double y) {
+    VisualNode *vNode = new VisualNode(id, name, type, x, y);
+    m_scene->addItem(vNode);
+    // 只有在全图模式下才加入 m_layout，静态模式不需要
+    if (m_timer->isActive()) {
+        m_layout->addNode(vNode);
+    }
 }

@@ -13,6 +13,8 @@ class QTimer;
 class VisualNode;
 class VisualEdge;
 class QGraphicsItem;
+class QueryEngine;
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -46,16 +48,25 @@ private slots:
     // onActionDeleteRelationshipTriggered 已经移到上面 public 了
     void onRelationshipDeleted(int edgeId);
 
+    //查询功能
+    void onQueryFullGraph();  // 全图查询
+    void onQuerySingleNode(); // 单节点查询 (右键或工具栏触发)
+    void onQueryAttribute();  // 属性查询
+    void onQueryPath();       // 路径查询
+
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;
     QGraphicsScene *m_scene;
     ForceDirectedLayout* m_layout;
     QTimer* m_timer;
-
+    QueryEngine* m_queryEngine;
     QGraphicsItem* findItemById(int nodeId);
 
     void loadInitialData();
     void setupConnections();
+    void setupToolbar(); // 初始化查询工具栏
+    void drawNode(int id, QString name, QString type, double x, double y);
+    void drawEdge(const GraphEdge& edge);
 };
 #endif // MAINWINDOW_H

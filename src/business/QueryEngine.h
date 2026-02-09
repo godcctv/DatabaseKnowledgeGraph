@@ -1,34 +1,35 @@
 #ifndef QUERYENGINE_H
 #define QUERYENGINE_H
 
+#include <QObject>
 #include <QList>
-#include <QString>
-#include <QSet>
 #include "../model/GraphNode.h"
 #include "../model/GraphEdge.h"
 
-/**
- * @brief 查询引擎类，负责图数据的检索与分析逻辑
- */
-class QueryEngine {
+class QueryEngine : public QObject
+{
+    Q_OBJECT
 public:
-    // --- 基础检索 ---
-    // 获取指定本体（项目）下的所有节点
-    QList<GraphNode> getAllNodes(int ontologyId);
-    // 获取指定本体（项目）下的所有关系
-    QList<GraphEdge> getAllRelationships(int ontologyId);
-    // 根据 ID 获取单个节点详情
-    GraphNode getNodeById(int nodeId);
+    explicit QueryEngine(QObject *parent = nullptr);
 
-    // --- 高级检索 ---
-    // 属性查询：根据自定义属性名和属性值筛选节点
+    // --- 1. 全图查询 ---
+    QList<GraphNode> getAllNodes(int ontologyId);
+    QList<GraphEdge> getAllRelationships(int ontologyId);
+
+    // --- 2. 单节点查询辅助 ---
+    GraphNode getNodeById(int nodeId);
+    // 获取与指定节点相连的所有边
+    QList<GraphEdge> getRelatedRelationships(int nodeId);
+
+    // --- 3. 属性查询 ---
     QList<GraphNode> queryByAttribute(const QString& attrName, const QString& attrValue);
 
-    // --- 图算法查询 ---
-    // 路径查询：寻找两个节点之间的连接路径（返回节点 ID 列表）
+    // --- 4. 路径查询 ---
     QList<int> findPath(int sourceId, int targetId);
-    // 子图查询：以某个节点为中心，获取指定深度内的关联子图
-    void getSubgraph(int nodeId, int depth, QList<GraphNode>& outNodes, QList<GraphEdge>& outEdges);
+
+private:
+    // 辅助：构建邻接表
+    QMap<int, QList<int>> buildAdjacencyList();
 };
 
-#endif
+#endif // QUERYENGINE_H
