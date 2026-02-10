@@ -18,7 +18,7 @@ CREATE TABLE ontology (
                           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 2. 节点表 (包含坐标和颜色)
+-- 2. 节点表
 CREATE TABLE node (
                       node_id INT PRIMARY KEY AUTO_INCREMENT,
                       ontology_id INT NOT NULL,
