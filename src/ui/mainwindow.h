@@ -14,6 +14,7 @@ class VisualNode;
 class VisualEdge;
 class QGraphicsItem;
 class QueryEngine;
+class OntologyDock;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -23,7 +24,7 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(int ontologyId, QString ontologyName, QWidget *parent = nullptr);
     ~MainWindow();
     // 提供给外部添加图元的接口
     void addNodeToScene(VisualNode* node);
@@ -55,7 +56,7 @@ private slots:
     void onQueryPath();       // 路径查询
 
     void onTogglePropertyPanel();
-
+    void onSwitchOntology(int ontologyId, QString name);
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;
@@ -64,10 +65,11 @@ private:
     QTimer* m_timer;
     QueryEngine* m_queryEngine;
     QGraphicsItem* findItemById(int nodeId);
+    int m_currentOntologyId;
 
     void loadInitialData();
     void setupConnections();
-    void setupToolbar(); // 初始化查询工具栏
+    void setupToolbar();
     void drawNode(int id, QString name, QString type, double x, double y);
     void drawEdge(const GraphEdge& edge);
 };

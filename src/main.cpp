@@ -3,9 +3,12 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
+#include <QMessageBox>
 #include <QStyleFactory>
 #include "database/DatabaseConnection.h"
+#include "database/OntologyRepository.h"
 #include "ui/mainwindow.h"
+#include "ui/ProjectSelectionDialog.h"
 
 
 QString loadStyleSheet() {
@@ -51,25 +54,35 @@ QString loadStyleSheet() {
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
-
-    // 1. 关键：强制使用 Fusion 风格，解决 Linux/Windows 默认白色底色问题
     a.setStyle(QStyleFactory::create("Fusion"));
-
-    // 2. 加载样式表
     a.setStyleSheet(loadStyleSheet());
 
-    // 3. 连接数据库
+    // 1. 连接数据库
     DatabaseConfig config;
     config.hostname = "localhost";
     config.username = "admin";
     config.password = "123456";
     config.database = "DatabaseKnowledgeGraph";
 
-    if (DatabaseConnection::connect(config)) {
-        MainWindow w;
+    if (!DatabaseConnection::connect(config)) {
+        QMessageBox::critical(nullptr, "Error", "无法连接到数据库！");
+        return -1;
+    }
+    OntologyRepository::initDatabase();
+    // 2. 显示项目选择对话框 (这是新的启动流程)
+    ProjectSelectionDialog selectDialog;
+    if (selectDialog.exec() == QDialog::Accepted) {
+        // 用户选好项目了，启动主界面
+        int ontoId = selectDialog.getSelectedOntologyId();
+        QString ontoName = selectDialog.getSelectedOntologyName();
+
+        // 3. 启动主窗口，传入选中的项目ID
+        MainWindow w(ontoId, ontoName);
         w.show();
+
         return a.exec();
     }
 
-    return -1;
+    // 如果用户取消或关闭了选择框，程序直接退出
+    return 0;
 }
