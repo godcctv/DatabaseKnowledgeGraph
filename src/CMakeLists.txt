@@ -20,6 +20,7 @@ set(SOURCES
         ui/addedgedialog.cpp
         ui/VisualNode.cpp
         ui/VisualEdge.cpp
+        ui/ProjectSelectionDialog.cpp
 )
 
 set(HEADERS
@@ -49,6 +50,7 @@ set(HEADERS
         ui/VisualNode.h
         ui/VisualEdge.h
         ui/QueryDialog.h
+        ui/ProjectSelectionDialog.h
 )
 
 set(FORMS
@@ -61,6 +63,8 @@ set(FORMS
         ui/VisualEdge.cpp
         business/ForceDirectedLayout.h
         ui/QueryDialog.h
+        ui/ProjectSelectionDialog.h
+        ui/ProjectSelectionDialog.cpp
 
 )
 

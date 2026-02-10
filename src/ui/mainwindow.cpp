@@ -5,9 +5,10 @@
 #include "VisualNode.h"
 #include "VisualEdge.h"
 #include "QueryDialog.h"
+#include "../database/OntologyRepository.h"
+#include "../database/RelationshipRepository.h"
 #include "../business/ForceDirectedLayout.h"  // 确保路径正确
 #include "../database/DatabaseConnection.h"
-#include "../database/RelationshipRepository.h"
 #include "../business/GraphEditor.h"
 #include "../business/QueryEngine.h"
 #include <QGraphicsTextItem>
@@ -24,11 +25,13 @@
 #include <QtMath>
 #include <QRandomGenerator>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 
+    m_currentOntologyId = ontologyId;
+    this->setWindowTitle(QString("知识图谱系统 - 当前项目: %1").arg(ontologyName));
     // 1. 初始化后端
     m_graphEditor = new GraphEditor(this);
     m_queryEngine = new QueryEngine(this);
@@ -42,15 +45,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform);
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 
-    // 1. 创建一个足够大的画布 (1000x1000 像素，之后会自动平铺)
     QPixmap starPixmap(1000, 1000);
-    // 2. 填充深邃的夜空底色 (深蓝黑色)
     starPixmap.fill(QColor("#0B0D17"));
 
     QPainter painter(&starPixmap);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // 3. 随机生成星星
+    // 随机生成星星
     int starCount = 200; // 星星数量
     for (int i = 0; i < starCount; ++i) {
         // 随机坐标
@@ -69,7 +70,7 @@ MainWindow::MainWindow(QWidget *parent)
         painter.drawEllipse(x, y, size, size);
     }
 
-    // 4. 将生成的星空图设置为背景刷
+    // 将生成的星空图设置为背景刷
     ui->graphicsView->setBackgroundBrush(QBrush(starPixmap));
 
     // 允许鼠标拖拽画布（像地图一样平移）
@@ -83,7 +84,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->graphicsView->viewport()->installEventFilter(this);
 
-    // 3. 初始化属性面板列头
+    // 初始化属性面板列头
     ui->propertyPanel->setHeaderLabels(QStringList() << "ID" << "名称" << "类型");
     ui->propertyPanel->setColumnCount(3);
     ui->propertyPanel->header()->setSectionResizeMode(0, QHeaderView::Fixed);
@@ -151,7 +152,7 @@ void MainWindow::onActionAddNodeTriggered() {
     AddNodeDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
         GraphNode newNode = dialog.getNodeData();
-        newNode.ontologyId = 1;
+        newNode.ontologyId = m_currentOntologyId;
 
         if (!m_graphEditor->addNode(newNode)) {
             QMessageBox::warning(this, "添加失败",
@@ -397,13 +398,27 @@ void MainWindow::setupToolbar() {
     QAction* actPath = toolbar->addAction("路径查询");
     actPath->setToolTip("先选中两个节点，然后点击此按钮");
     connect(actPath, &QAction::triggered, this, &MainWindow::onQueryPath);
+
+    toolbar->addSeparator();
+
+    // 属性面板切换按钮 ---
+    QAction* actToggle = toolbar->addAction("属性面板");
+    actToggle->setToolTip("显示/隐藏右侧属性列表");
+    actToggle->setCheckable(true); // 设置为可勾选状态
+    actToggle->setChecked(true);
+    connect(actToggle, &QAction::triggered, this, &MainWindow::onTogglePropertyPanel);
+}
+
+void MainWindow::onTogglePropertyPanel() {
+    bool isVisible = ui->propertyPanel->isVisible();
+    ui->propertyPanel->setVisible(!isVisible);
 }
 
 // --- 1. 全图查询  ---
 void MainWindow::onQueryFullGraph() {
     // 1. 获取数据
-    QList<GraphNode> nodes = m_queryEngine->getAllNodes(1);
-    QList<GraphEdge> edges = m_queryEngine->getAllRelationships(1);
+    QList<GraphNode> nodes = m_queryEngine->getAllNodes(m_currentOntologyId);
+    QList<GraphEdge> edges = m_queryEngine->getAllRelationships(m_currentOntologyId);
 
     // 2. 清空视图
     m_scene->clear();
@@ -640,4 +655,14 @@ void MainWindow::drawNode(int id, QString name, QString type, double x, double y
     if (m_timer->isActive()) {
         m_layout->addNode(vNode);
     }
+}
+
+void MainWindow::onSwitchOntology(int ontologyId, QString name) {
+    if (m_currentOntologyId == ontologyId) return;
+
+    m_currentOntologyId = ontologyId;
+    this->setWindowTitle(QString("知识图谱系统 - 当前项目: %1").arg(name));
+
+    // 重新查询全图
+    onQueryFullGraph();
 }

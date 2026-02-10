@@ -1,99 +1,145 @@
-/* src/ui/style.qss - 完整版 V2 */
+/* src/ui/style.qss - 星空科幻版 */
 
-/* ================= 全局设定 ================= */
+/* ================= 全局基础设定 ================= */
 QWidget {
-    background-color: #1e1e1e; /* 全局深灰底色 */
-    color: #cccccc;            /* 全局灰白文字 */
+    /* 与代码中生成的星空背景 (#0B0D17) 保持色调一致，但稍亮一点 */
+    background-color: #0E1019;
+    color: #E0E6ED;            /* 亮银色文字，比纯白柔和 */
     font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
     font-size: 10pt;
-    outline: none;             /* 去掉焦点虚线框 */
+    selection-background-color: #00E5FF; /* 选中时的霓虹青色 */
+    selection-color: #000000;
+    outline: none;
 }
 
-/* ================= 主窗口与菜单 ================= */
-QMainWindow::separator {
-    background-color: #2d2d2d;
-    width: 1px;
-}
-
+/* ================= 顶部菜单栏 (QMenuBar) ================= */
 QMenuBar {
-    background-color: #1e1e1e;
-    border-bottom: 1px solid #333333;
+    background-color: #0B0D17; /* 深邃黑 */
+    border-bottom: 1px solid #2A2F45; /* 只有一条微妙的蓝灰底边 */
 }
 QMenuBar::item {
     background: transparent;
-    padding: 8px 12px;
+    padding: 8px 16px;
+    color: #A0AAB5;
 }
 QMenuBar::item:selected {
-    background-color: #333333; /* 菜单项悬停 */
+    background-color: rgba(255, 255, 255, 0.05); /* 微弱的白色高亮 */
+    color: #FFFFFF;
 }
 QMenu {
-    background-color: #252526;
-    border: 1px solid #454545;
+    background-color: #161925; /* 菜单下拉框深蓝灰 */
+    border: 1px solid #2A2F45;
+    padding: 5px;
+}
+QMenu::item {
+    padding: 6px 24px;
 }
 QMenu::item:selected {
-    background-color: #094771; /* 菜单下拉项选中蓝 */
+    background-color: #00E5FF; /* 选中变为霓虹青 */
+    color: #000000;            /* 文字变黑以保证对比度 */
+    border-radius: 2px;
 }
 
-/* ================= 分割器 (QSplitter) ================= */
-/* 这就是控制左右窗口之间那条线样式的 */
-QSplitter::handle {
-    background-color: #2d2d2d; /* 深色分割线 */
+/* ================= 工具栏 (QToolBar) ================= */
+QToolBar {
+    background-color: #0E1019;
+    border-bottom: 1px solid #2A2F45;
+    spacing: 10px; /* 按钮间距 */
+    padding: 5px;
 }
-QSplitter::handle:horizontal {
-    width: 2px; /* 极细分割线，显得精致 */
+/* 工具栏按钮 */
+QToolButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 6px 12px;
+    color: #E0E6ED;
+    font-weight: bold;
+}
+QToolButton:hover {
+    background-color: rgba(0, 229, 255, 0.1); /* 鼠标悬停泛青光 */
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    color: #00E5FF;
+}
+QToolButton:pressed {
+    background-color: rgba(0, 229, 255, 0.2);
+    border: 1px solid #00E5FF;
+}
+/* 工具栏分隔符 */
+QToolBar::separator {
+    background-color: #2A2F45;
+    width: 1px;
+    margin: 4px 8px;
+}
+/* 工具栏里的搜索框 (QLineEdit) */
+QLineEdit {
+    background-color: #08090F;
+    border: 1px solid #2A2F45;
+    border-radius: 14px; /* 圆角搜索框 */
+    padding: 4px 12px;
+    color: #00E5FF; /* 输入文字也是青色 */
+    selection-background-color: #00E5FF;
+    selection-color: #000000;
+}
+QLineEdit:focus {
+    border: 1px solid #00E5FF; /* 聚焦时边框发光 */
 }
 
 /* ================= 右侧属性面板 (QTreeWidget) ================= */
 QTreeWidget {
-    background-color: #252526; /* 侧边栏背景：比主背景稍亮 */
+    background-color: rgba(22, 25, 37, 0.9); /* 轻微半透明的深蓝背景 */
     border: none;
-    border-left: 1px solid #333333; /* 左侧加一条分割线 */
-    alternate-background-color: #2a2a2d; /* 隔行变色 */
+    border-left: 1px solid #2A2F45;
+}
+
+/* 表头 */
+QHeaderView::section {
+    background-color: #0E1019;
+    color: #00E5FF;            /* 表头文字青色 */
+    padding: 10px;
+    border: none;
+    border-bottom: 2px solid #2A2F45;
+    font-weight: bold;
+    text-transform: uppercase;
 }
 
 /* 列表项 */
 QTreeWidget::item {
-    height: 32px; /* 增加行高，不那么拥挤 */
-    padding-left: 5px;
+    height: 36px; /* 更高的行高，显得大气 */
+    border-bottom: 1px solid rgba(42, 47, 69, 0.5); /* 极细的分隔线 */
 }
 QTreeWidget::item:hover {
-    background-color: #2a2d2e;
+    background-color: rgba(255, 255, 255, 0.03);
 }
 QTreeWidget::item:selected {
-    background-color: #37373d;
-    color: #ffffff;
-    border-left: 3px solid #007acc; /* 选中时左侧出现蓝色指示条 */
+    background-color: rgba(0, 229, 255, 0.15); /* 选中项背景泛光 */
+    color: #FFFFFF;
+    border-left: 3px solid #00E5FF; /* 左侧亮条指示 */
 }
 
-/* 表头 (ID, 名称, 类型 那一行) */
-QHeaderView::section {
-    background-color: #252526; /* 表头背景 */
-    color: #858585;            /* 表头文字颜色 */
-    padding: 8px;
-    border: none;
-    border-bottom: 1px solid #333333;
-    font-weight: bold;
-    text-transform: uppercase; /* 大写 */
-}
-
-/* ================= 滚动条 (保持之前的修改) ================= */
+/* ================= 滚动条 (极简风格) ================= */
 QScrollBar:vertical {
     border: none;
-    background: #252526;
-    width: 10px;
+    background: #0E1019;
+    width: 8px;
     margin: 0px;
 }
 QScrollBar::handle:vertical {
-    background: #424242;
+    background: #2A2F45;
     min-height: 20px;
-    border-radius: 5px;
+    border-radius: 4px;
 }
 QScrollBar::handle:vertical:hover {
-    background: #686868;
+    background: #00E5FF; /* 滚动条悬停变亮 */
 }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
     height: 0px;
 }
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
     background: none;
+}
+
+/* ================= 分割器 (QSplitter) ================= */
+QSplitter::handle {
+    background-color: #0E1019;
 }

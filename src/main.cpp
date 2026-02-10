@@ -3,12 +3,14 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
+#include <QMessageBox>
 #include <QStyleFactory>
 #include "database/DatabaseConnection.h"
+#include "database/OntologyRepository.h"
 #include "ui/mainwindow.h"
+#include "ui/ProjectSelectionDialog.h"
 
-// 辅助函数：智能加载样式表
-// 优先加载文件，加载失败则使用内置字符串，确保界面永远是深色
+
 QString loadStyleSheet() {
     QStringList paths = {
         ":/style.qss",                          // 资源路径
@@ -30,45 +32,57 @@ QString loadStyleSheet() {
 
     // 内置保底深色样式 (与 style.qss 内容一致)
     return R"(
-        QWidget { background-color: #1e1e1e; color: #cccccc; font-family: "Microsoft YaHei"; font-size: 10pt; }
-        QMainWindow::separator { background-color: #2d2d2d; width: 1px; }
-        QMenuBar { background-color: #1e1e1e; border-bottom: 1px solid #333333; }
-        QMenuBar::item { background: transparent; padding: 8px 12px; }
-        QMenuBar::item:selected { background-color: #333333; }
-        QMenu { background-color: #252526; border: 1px solid #454545; }
-        QMenu::item:selected { background-color: #094771; }
-        QSplitter::handle { background-color: #2d2d2d; }
-        QTreeWidget { background-color: #252526; border: none; border-left: 1px solid #333333; alternate-background-color: #2a2a2d; }
-        QTreeWidget::item { height: 32px; padding-left: 5px; }
-        QTreeWidget::item:selected { background-color: #37373d; color: #ffffff; border-left: 3px solid #007acc; }
-        QHeaderView::section { background-color: #252526; color: #858585; padding: 8px; border: none; border-bottom: 1px solid #333333; font-weight: bold; }
-        QScrollBar:vertical { border: none; background: #252526; width: 10px; margin: 0px; }
-        QScrollBar::handle:vertical { background: #424242; min-height: 20px; border-radius: 5px; }
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
+        QWidget { background-color: #0E1019; color: #E0E6ED; font-family: "Microsoft YaHei"; font-size: 10pt; selection-background-color: #00E5FF; outline: none; }
+        QMenuBar { background-color: #0B0D17; border-bottom: 1px solid #2A2F45; }
+        QMenuBar::item { background: transparent; padding: 8px 16px; color: #A0AAB5; }
+        QMenuBar::item:selected { background-color: rgba(255, 255, 255, 0.05); color: #FFFFFF; }
+        QMenu { background-color: #161925; border: 1px solid #2A2F45; padding: 5px; }
+        QMenu::item:selected { background-color: #00E5FF; color: #000000; border-radius: 2px; }
+        QToolBar { background-color: #0E1019; border-bottom: 1px solid #2A2F45; spacing: 10px; padding: 5px; }
+        QToolButton { background-color: transparent; border-radius: 4px; padding: 6px 12px; color: #E0E6ED; font-weight: bold; }
+        QToolButton:hover { background-color: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.3); color: #00E5FF; }
+        QLineEdit { background-color: #08090F; border: 1px solid #2A2F45; border-radius: 14px; padding: 4px 12px; color: #00E5FF; }
+        QTreeWidget { background-color: rgba(22, 25, 37, 0.9); border: none; border-left: 1px solid #2A2F45; }
+        QHeaderView::section { background-color: #0E1019; color: #00E5FF; padding: 10px; border: none; border-bottom: 2px solid #2A2F45; font-weight: bold; }
+        QTreeWidget::item { height: 36px; border-bottom: 1px solid rgba(42, 47, 69, 0.5); }
+        QTreeWidget::item:selected { background-color: rgba(0, 229, 255, 0.15); color: #FFFFFF; border-left: 3px solid #00E5FF; }
+        QScrollBar:vertical { border: none; background: #0E1019; width: 8px; margin: 0px; }
+        QScrollBar::handle:vertical { background: #2A2F45; min-height: 20px; border-radius: 4px; }
+        QScrollBar::handle:vertical:hover { background: #00E5FF; }
     )";
 }
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
-
-    // 1. 关键：强制使用 Fusion 风格，解决 Linux/Windows 默认白色底色问题
     a.setStyle(QStyleFactory::create("Fusion"));
-
-    // 2. 加载样式表
     a.setStyleSheet(loadStyleSheet());
 
-    // 3. 连接数据库
+    // 1. 连接数据库
     DatabaseConfig config;
     config.hostname = "localhost";
     config.username = "admin";
     config.password = "123456";
     config.database = "DatabaseKnowledgeGraph";
 
-    if (DatabaseConnection::connect(config)) {
-        MainWindow w;
+    if (!DatabaseConnection::connect(config)) {
+        QMessageBox::critical(nullptr, "Error", "无法连接到数据库！");
+        return -1;
+    }
+    OntologyRepository::initDatabase();
+    // 2. 显示项目选择对话框 (这是新的启动流程)
+    ProjectSelectionDialog selectDialog;
+    if (selectDialog.exec() == QDialog::Accepted) {
+        // 用户选好项目了，启动主界面
+        int ontoId = selectDialog.getSelectedOntologyId();
+        QString ontoName = selectDialog.getSelectedOntologyName();
+
+        // 3. 启动主窗口，传入选中的项目ID
+        MainWindow w(ontoId, ontoName);
         w.show();
+
         return a.exec();
     }
 
-    return -1;
+    // 如果用户取消或关闭了选择框，程序直接退出
+    return 0;
 }
