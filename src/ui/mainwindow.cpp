@@ -397,6 +397,20 @@ void MainWindow::setupToolbar() {
     QAction* actPath = toolbar->addAction("路径查询");
     actPath->setToolTip("先选中两个节点，然后点击此按钮");
     connect(actPath, &QAction::triggered, this, &MainWindow::onQueryPath);
+
+    toolbar->addSeparator();
+
+    // 属性面板切换按钮 ---
+    QAction* actToggle = toolbar->addAction("属性面板");
+    actToggle->setToolTip("显示/隐藏右侧属性列表");
+    actToggle->setCheckable(true); // 设置为可勾选状态
+    actToggle->setChecked(true);
+    connect(actToggle, &QAction::triggered, this, &MainWindow::onTogglePropertyPanel);
+}
+
+void MainWindow::onTogglePropertyPanel() {
+    bool isVisible = ui->propertyPanel->isVisible();
+    ui->propertyPanel->setVisible(!isVisible);
 }
 
 // --- 1. 全图查询  ---

@@ -54,6 +54,8 @@ private slots:
     void onQueryAttribute();  // 属性查询
     void onQueryPath();       // 路径查询
 
+    void onTogglePropertyPanel();
+
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;

@@ -7,8 +7,7 @@
 #include "database/DatabaseConnection.h"
 #include "ui/mainwindow.h"
 
-// 辅助函数：智能加载样式表
-// 优先加载文件，加载失败则使用内置字符串，确保界面永远是深色
+
 QString loadStyleSheet() {
     QStringList paths = {
         ":/style.qss",                          // 资源路径
