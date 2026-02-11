@@ -50,7 +50,6 @@ private:
     VisualNode* m_srcNode;
     VisualNode* m_destNode;
 
-    // 🔥 新增：偏移量成员变量
     qreal m_offset = 0;
 };
 

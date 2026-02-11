@@ -125,6 +125,16 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     if (DatabaseConnection::isConnected()) {
         loadInitialData();
     }
+
+    QTimer *renderTimer = new QTimer(this);
+    
+    connect(renderTimer, &QTimer::timeout, this, [this]() {
+        if (m_scene) {
+            m_scene->update(); // 触发全场景重绘
+        }
+    });
+
+    renderTimer->start(16);
 }
 
 MainWindow::~MainWindow() {

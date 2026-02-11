@@ -64,37 +64,27 @@ void VisualEdge::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
     if (!m_srcNode || !m_destNode) return;
     if (m_srcNode->collidesWithItem(m_destNode)) return; // 如果球重叠了就不画线
 
-    QColor normalColor("#A0A0A0");   // 浅灰色 (未选中)
-    QColor selectedColor("#00E5FF"); // 青色高亮 (选中)
-
-    QPen myPen = pen();
-    myPen.setColor(isSelected() ? selectedColor : normalColor);
-    myPen.setWidthF(1.5); //稍微细一点，更精致
-    myPen.setStyle(Qt::DashLine);
-
-    painter->setPen(myPen);
-    painter->setBrush(Qt::NoBrush);
+    QColor normalColor(88, 166, 255, 120);   // 浅蓝 (未选中)
+    QColor selectedColor(0, 229, 255, 255);  // 青色高亮 (选中)
+    QColor glowColor = isSelected() ? selectedColor : normalColor;
 
     QPointF srcPos = m_srcNode->scenePos();
     QPointF dstPos = m_destNode->scenePos();
     QLineF line(srcPos, dstPos);
 
-    // --- 绘制贝塞尔曲线 (解决重叠) ---
+    // --- 提取路径 (贝塞尔曲线支持) ---
     QPainterPath path;
     path.moveTo(srcPos);
 
     if (m_offset == 0) {
-        // 直线
         path.lineTo(dstPos);
     } else {
-        // 曲线
         QPointF center = line.center();
         double dx = line.dx();
         double dy = line.dy();
         double length = line.length();
 
         if (length > 0) {
-            // 计算垂直方向的偏移控制点
             double normX = -dy / length;
             double normY = dx / length;
             QPointF controlPoint(center.x() + normX * m_offset,
@@ -104,36 +94,44 @@ void VisualEdge::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
             path.lineTo(dstPos);
         }
     }
+
+    // --- 绘制双层结构，制造发光光束感 ---
+    // 1. 底层：半透明的粗光晕层 (Blur/Glow)
+    painter->setPen(QPen(QColor(glowColor.red(), glowColor.green(), glowColor.blue(), 30), 6, Qt::SolidLine, Qt::RoundCap));
+    painter->setBrush(Qt::NoBrush);
     painter->drawPath(path);
 
-    // --- 绘制文字 ---
+    // 2. 顶层：明亮的核心实体线
+    painter->setPen(QPen(glowColor, 1.5, Qt::SolidLine, Qt::RoundCap));
+    painter->drawPath(path);
+
+    // --- 绘制连线上的关系文字 ---
     if (!m_relationType.isEmpty()) {
-        // 计算文字位置（曲线的中点）
         QPointF textPos = path.pointAtPercent(0.5);
 
         painter->save();
         painter->translate(textPos);
-        // 让文字跟随线条角度旋转
+
         double angle = line.angle();
         painter->rotate(-angle);
         if (angle > 90 && angle < 270) {
              painter->rotate(180); // 防止文字倒着显示
         }
 
-        // 绘制文字背景和文字
-        painter->setBrush(QColor(30, 30, 30, 200)); // 半透明深黑
-        painter->setPen(QPen(normalColor, 1));      // 边框
+        // 标签背景：星空深蓝半透明
         QRectF bgRect(-30, -10, 60, 20);
-        painter->drawRoundedRect(bgRect, 10, 10);   // 圆角矩形
+        painter->setBrush(QColor(10, 20, 35, 200));
+        painter->setPen(QPen(QColor(88, 166, 255, 80), 1));
+        painter->drawRoundedRect(bgRect, 4, 4);
 
-        // 文字颜色
-        painter->setPen(Qt::white);
+        // 标签文字
+        painter->setPen(QColor(220, 230, 255));
+        painter->setFont(QFont("Microsoft YaHei", 8));
         painter->drawText(bgRect, Qt::AlignCenter, m_relationType);
 
         painter->restore();
     }
 }
-
 void VisualEdge::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
     // 1. 自动选中当前线
     setSelected(true);

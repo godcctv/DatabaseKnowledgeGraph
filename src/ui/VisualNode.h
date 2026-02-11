@@ -5,7 +5,6 @@
 #include <QGraphicsLineItem>
 #include <QList>
 
-// 继承自 QGraphicsEllipseItem，让我们自定义节点的行为
 class VisualNode : public QGraphicsEllipseItem {
 public:
     // 构造函数：传入ID、名字、类型和位置
@@ -22,7 +21,7 @@ public:
     // UserType 是 Qt 预留的起始值，+1 避免冲突
     enum { Type = UserType + 1 };
     int type() const override { return Type; }
-
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 protected:
     // 当节点发生改变时，这个函数会被自动调用
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
