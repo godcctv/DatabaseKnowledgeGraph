@@ -24,6 +24,8 @@
 #include <QToolBar>
 #include <QtMath>
 #include <QRandomGenerator>
+#include <QContextMenuEvent>
+#include <QMenu>
 
 MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -114,9 +116,7 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     connect(m_timer, &QTimer::timeout, m_layout, &ForceDirectedLayout::calculate);
     m_timer->start(30); // 30ms 刷新一次
 
-    ui->graphicsView->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(ui->graphicsView, &QWidget::customContextMenuRequested, this, &MainWindow::onGraphicsViewContextMenu);
-    // 4. 建立连接
+   //建立连接
     setupConnections();
     setupToolbar();
     updateStatusBar();
@@ -393,25 +393,48 @@ void MainWindow::onRelationshipDeleted(int edgeId) {
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
-    // 拦截 GraphicsView 视口的滚轮事件
-    if (obj == ui->graphicsView->viewport() && event->type() == QEvent::Wheel) {
-        QWheelEvent *wheelEvent = static_cast<QWheelEvent*>(event);
+    if (obj == ui->graphicsView->viewport()) {
 
-        // 检查是否按住了 Ctrl 键
-        if (wheelEvent->modifiers() & Qt::ControlModifier) {
-            const double scaleFactor = 1.15; // 缩放倍率
-            if (wheelEvent->angleDelta().y() > 0) {
-                // 向上滚：放大
-                ui->graphicsView->scale(scaleFactor, scaleFactor);
-            } else {
-                // 向下滚：缩小
-                ui->graphicsView->scale(1.0 / scaleFactor, 1.0 / scaleFactor);
+        //  处理鼠标滚轮缩放
+        if (event->type() == QEvent::Wheel) {
+            QWheelEvent *wheelEvent = static_cast<QWheelEvent*>(event);
+            if (wheelEvent->modifiers() & Qt::ControlModifier) {
+                const double scaleFactor = 1.1;
+                if (wheelEvent->angleDelta().y() > 0) ui->graphicsView->scale(scaleFactor, scaleFactor);
+                else ui->graphicsView->scale(1.0 / scaleFactor, 1.0 / scaleFactor);
+                return true; // 拦截事件，不再传递
             }
-            // 返回 true 表示事件已被处理，不再传递给默认的滚动条逻辑
-            return true;
+        }
+
+        else if (event->type() == QEvent::ContextMenu) {
+            QContextMenuEvent *cme = static_cast<QContextMenuEvent*>(event);
+
+            // 获取鼠标在场景中的精确坐标
+            QPointF scenePos = ui->graphicsView->mapToScene(cme->pos());
+
+            // 检查鼠标下方是否有实体（节点或边）
+            QGraphicsItem *item = m_scene->itemAt(scenePos, ui->graphicsView->transform());
+
+            if (!item) {
+                // 如果是空白区域，弹出添加节点菜单
+                QMenu menu(this);
+                QAction *addNodeAct = menu.addAction("添加节点");
+
+                // 记录坐标，供生成节点使用
+                m_hasClickPos = true;
+                m_clickPos = scenePos;
+
+                if (menu.exec(cme->globalPos()) == addNodeAct) {
+                    onActionAddNodeTriggered();
+                } else {
+                    m_hasClickPos = false; // 用户取消了操作
+                }
+                return true; // 告诉系统：事件我处理完了，不要再往下传了
+            }
+            // 如果点中了节点或连线，返回 false，让 Qt 系统默认把右键事件传递给 VisualNode/VisualEdge
+            return false;
         }
     }
-    // 其他事件交给父类处理
     return QMainWindow::eventFilter(obj, event);
 }
 
@@ -704,27 +727,3 @@ void MainWindow::onSwitchOntology(int ontologyId, QString name) {
     onQueryFullGraph();
 }
 
-void MainWindow::onGraphicsViewContextMenu(const QPoint &pos) {
-    // 将屏幕鼠标坐标转换为场景坐标
-    QPointF scenePos = ui->graphicsView->mapToScene(pos);
-
-    // 检查鼠标下方是否有物品 (节点或边)
-    QGraphicsItem *item = m_scene->itemAt(scenePos, ui->graphicsView->transform());
-
-    // 如果点击的是空白处
-    if (!item) {
-        QMenu menu(this);
-        QAction *addNodeAct = menu.addAction("添加节点");
-
-        // 记录用户点击的位置，让新节点生成在这里
-        m_hasClickPos = true;
-        m_clickPos = scenePos;
-
-        if (menu.exec(ui->graphicsView->mapToGlobal(pos)) == addNodeAct) {
-            onActionAddNodeTriggered();
-        } else {
-            // 如果菜单消失但用户没有点击，重置坐标状态
-            m_hasClickPos = false;
-        }
-    }
-}

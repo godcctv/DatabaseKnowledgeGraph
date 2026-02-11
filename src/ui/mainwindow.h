@@ -59,7 +59,6 @@ private slots:
 
     void onTogglePropertyPanel();
     void onSwitchOntology(int ontologyId, QString name);
-    void onGraphicsViewContextMenu(const QPoint &pos);
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;
