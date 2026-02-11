@@ -302,7 +302,6 @@ void MainWindow::onRelationshipAdded(const GraphEdge& edge) {
 
     m_scene->addItem(visualEdge);
 
-    // 🔥 将新边加入力导向布局算法 🔥
     if (m_layout) {
         m_layout->addEdge(visualEdge);
     }
@@ -342,7 +341,6 @@ void MainWindow::onRelationshipDeleted(int edgeId) {
                 if (src) src->removeEdge(edge);
                 if (dst) dst->removeEdge(edge);
 
-                // 🔥 从算法中移除 🔥
                 if (m_layout) {
                     m_layout->removeEdge(edge);
                 }
@@ -405,7 +403,8 @@ void MainWindow::setupToolbar() {
     QAction* actToggle = toolbar->addAction("属性面板");
     actToggle->setToolTip("显示/隐藏右侧属性列表");
     actToggle->setCheckable(true); // 设置为可勾选状态
-    actToggle->setChecked(true);
+    actToggle->setChecked(false);
+    ui->propertyPanel->setVisible(false);
     connect(actToggle, &QAction::triggered, this, &MainWindow::onTogglePropertyPanel);
 }
 

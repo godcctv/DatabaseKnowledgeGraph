@@ -11,8 +11,6 @@ void OntologyRepository::initDatabase() {
 
     QSqlQuery query(db);
 
-    // 🔥 修复 1: 保持列名一致性，使用 ontology_id 🔥
-    // 这样能兼容 init.sql 创建的表结构
     bool success = query.exec(
         "CREATE TABLE IF NOT EXISTS ontology ("
         "ontology_id INTEGER PRIMARY KEY AUTO_INCREMENT, "
@@ -24,7 +22,6 @@ void OntologyRepository::initDatabase() {
     );
 
     if (!success) {
-        // 如果表已存在且结构不同，这里也不会报错，但没关系，我们下面的代码会适配 ontology_id
         qDebug() << "Init ontology table info:" << query.lastError().text();
     }
 
@@ -42,7 +39,6 @@ QList<Ontology> OntologyRepository::getAllOntologies() {
     if (!db.isOpen()) return list;
 
     QSqlQuery query(db);
-    // 🔥 修复 2: 排序字段改为 ontology_id 🔥
     if (!query.exec("SELECT * FROM ontology ORDER BY ontology_id ASC")) {
         qDebug() << "Query ontologies failed:" << query.lastError().text();
         return list;
@@ -50,8 +46,6 @@ QList<Ontology> OntologyRepository::getAllOntologies() {
 
     while (query.next()) {
         Ontology o;
-        // 🔥 修复 3: 读取字段改为 ontology_id 🔥
-        // 尝试读取 ontology_id，如果不存在则尝试读取 id (兼容性处理)
         QVariant idVal = query.value("ontology_id");
         if (!idVal.isValid()) idVal = query.value("id");
 
@@ -91,7 +85,6 @@ bool OntologyRepository::deleteOntology(int id) {
     db.transaction();
     QSqlQuery query(db);
 
-    // 🔥 修复 4: Where 条件改为 ontology_id 🔥
 
     // 1. 删除关系 (relationship 表)
     query.prepare("DELETE FROM relationship WHERE ontology_id = :id");
@@ -118,7 +111,6 @@ Ontology OntologyRepository::getOntologyById(int id) {
     QSqlDatabase db = DatabaseConnection::getDatabase();
     QSqlQuery query(db);
 
-    // 🔥 修复 5: Where 条件改为 ontology_id 🔥
     query.prepare("SELECT * FROM ontology WHERE ontology_id = :id");
     query.bindValue(":id", id);
 
