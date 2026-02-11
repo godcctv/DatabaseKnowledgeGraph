@@ -5,11 +5,11 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QDebug>
-#include <QRandomGenerator>
 #include <QGraphicsDropShadowEffect>
+#include <QPropertyAnimation> // 保留用于按钮呼吸效果
 
 ProjectSelectionDialog::ProjectSelectionDialog(QWidget *parent)
-    : QDialog(parent), m_selectedId(-1), m_shakeSteps(0)
+    : QDialog(parent), m_selectedId(-1)
 {
     // 1. 基础窗口设置
     setWindowTitle("选择知识库项目");
@@ -18,125 +18,127 @@ ProjectSelectionDialog::ProjectSelectionDialog(QWidget *parent)
     // 2. 初始化 UI 和 样式
     setupUI();
 
-    // 3. 初始化动画特效
-    setupAnimations();
-
-    // 4. 加载数据
+    // 3. 加载数据
     loadProjects();
 }
 
 void ProjectSelectionDialog::setupUI() {
-
+    // 核心配色：深空蓝背景，亮蓝/青色高亮，白色/浅蓝文本
     setStyleSheet(R"(
         QDialog {
-            background-color: #0B0B0B;
-            color: #E8DCCA;
-            font-family: "FangSong", "SimSun", "Times New Roman", serif;
+            background-color: #050a14; /* 深空蓝底色 */
+            /* 如果有星空背景图，可以取消下面注释并替换路径 */
+            /* background-image: url(:/images/star_bg.jpg); */
+            background-position: center;
+            color: #d0e6ff; /* 浅蓝文本 */
+            font-family: "Microsoft YaHei", "Segoe UI", sans-serif; /* 现代无衬线字体 */
         }
 
         /* 标题 */
         QLabel#TitleLabel {
-            font-size: 32px;
+            font-size: 26px;
             font-weight: bold;
-            color: #C8A56E;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #555;
-            letter-spacing: 5px; /* 增加字间距，更显庄重 */
+            color: #58a6ff; /* 亮蓝色标题 */
+            margin-bottom: 25px;
+            /* 渐变分割线，营造科幻感 */
+            border-bottom: 2px solid qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(88, 166, 255, 0), stop:0.5 rgba(88, 166, 255, 255), stop:1 rgba(88, 166, 255, 0));
+            letter-spacing: 2px;
+            padding-bottom: 10px;
         }
 
-        /* 列表容器：模拟石板或重金属边框 */
+        /* 列表容器 */
         QListWidget {
-            background-color: #121212;
-            border: 2px solid #3E3E3E;
-            border-radius: 2px;
-            color: #E8DCCA;
-            font-size: 18px; /* 中文可以稍微大一点 */
-            padding: 5px;
+            background-color: rgba(16, 24, 40, 0.8); /* 半透明深蓝 */
+            border: 1px solid #1e3a5a; /* 深蓝边框 */
+            border-radius: 8px;
+            color: #d0e6ff;
+            font-size: 15px;
+            padding: 8px;
             outline: none; /* 去掉虚线框 */
         }
 
-        /* 列表项：模拟羊皮纸条 */
+        /* 列表项 */
         QListWidget::item {
-            height: 55px;
-            margin-bottom: 4px;
-            background-color: #1E1E1E;
-            border: 1px solid #333;
-            padding-left: 10px;
+            height: 50px;
+            margin: 3px 0;
+            background-color: rgba(255, 255, 255, 0.03); /* 极淡的背景 */
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding-left: 15px;
         }
 
-        /* 列表项选中：血红高亮 */
-        QListWidget::item:selected {
-            background-color: #2A0505;
-            border: 1px solid #AF1E1E;
-            color: #FF4444;
-        }
+        /* 列表项悬浮 */
         QListWidget::item:hover {
-            background-color: #252525;
-            border-color: #C8A56E;
+            background-color: rgba(88, 166, 255, 0.1);
+            border-color: rgba(88, 166, 255, 0.5);
         }
 
-        /* 按钮：模拟金属铭牌 */
+        /* 列表项选中：亮蓝高亮 */
+        QListWidget::item:selected {
+            background-color: rgba(88, 166, 255, 0.2);
+            border: 1px solid #58a6ff;
+            color: #ffffff;
+        }
+
+        /* 按钮通用样式 */
         QPushButton {
-            background-color: #1A1A1A;
-            color: #C8A56E;
-            border: 1px solid #444;
+            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e3a5a, stop:1 #101828); /* 深蓝渐变 */
+            color: #d0e6ff;
+            border: 1px solid #3a6ea5;
             padding: 10px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 1px;
-            font-family: "Microsoft YaHei", "SimHei"; /* 按钮用黑体更清晰 */
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 6px;
         }
         QPushButton:hover {
-            background-color: #2A2A2A;
-            border-color: #C8A56E;
-            color: #FFEEDD;
+            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3a6ea5, stop:1 #1e3a5a);
+            border-color: #58a6ff;
+            color: #ffffff;
         }
         QPushButton:pressed {
-            background-color: #000000;
-            border-color: #886633;
+            background-color: #0f172a;
+            border-color: #2a4e75;
         }
 
-        /* 主要按钮（打开）：暗红底色 */
+        /* 主要按钮（打开）：亮蓝底色 */
         QPushButton#BtnPrimary {
-            background-color: #3E0E0E;
-            border: 1px solid #AF1E1E;
-            color: #FFaaaa;
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0066cc, stop:1 #003366);
+            border: 1px solid #0077ff;
+            color: #ffffff;
         }
         QPushButton#BtnPrimary:hover {
-            background-color: #5E1515;
-            color: #FF4444;
-            border-color: #FF0000;
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0077ff, stop:1 #004488);
         }
 
-        /* 危险按钮（删除）：幽灵灰 */
+        /* 危险按钮（删除）：警告红 */
         QPushButton#BtnDanger {
-            color: #888;
+            color: #ff6b6b;
             background-color: transparent;
-            border: 1px dashed #444;
+            border: 1px solid #ff6b6b;
         }
         QPushButton#BtnDanger:hover {
-            color: #FF6B6B;
-            border-color: #FF6B6B;
-            background-color: rgba(255, 0, 0, 0.05);
+            color: #ff9999;
+            border-color: #ff9999;
+            background-color: rgba(255, 107, 107, 0.1);
         }
     )");
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(20);
-    mainLayout->setContentsMargins(40, 40, 40, 40);
+    mainLayout->setSpacing(25);
+    mainLayout->setContentsMargins(50, 50, 50, 50);
 
-    // 标题：暗黑知识库
-    QLabel* title = new QLabel("暗 黑 知 识 库", this);
+    // 标题：知识图谱项目
+    QLabel* title = new QLabel("知 识 图 谱 项 目", this);
     title->setObjectName("TitleLabel");
     title->setAlignment(Qt::AlignCenter);
     mainLayout->addWidget(title);
 
     // 项目列表
     m_projectList = new QListWidget(this);
-    // 给列表加一个阴影，增加立体感
+    // 给列表加一个蓝色的发光阴影
     QGraphicsDropShadowEffect* listShadow = new QGraphicsDropShadowEffect();
-    listShadow->setBlurRadius(15);
-    listShadow->setColor(QColor(0, 0, 0, 150));
+    listShadow->setBlurRadius(20);
+    listShadow->setColor(QColor(88, 166, 255, 50)); // 半透明亮蓝
     listShadow->setOffset(0, 4);
     m_projectList->setGraphicsEffect(listShadow);
     mainLayout->addWidget(m_projectList);
@@ -144,29 +146,29 @@ void ProjectSelectionDialog::setupUI() {
     // 按钮区域
     QHBoxLayout* btnLayout = new QHBoxLayout();
 
-    m_btnCreate = new QPushButton("新 建 征 途", this);
+    m_btnCreate = new QPushButton("新建项目", this);
     m_btnCreate->setToolTip("创建一个新的知识图谱项目");
 
-    m_btnDelete = new QPushButton("遗 弃", this);
+    m_btnDelete = new QPushButton("删除项目", this);
     m_btnDelete->setObjectName("BtnDanger");
 
-    m_btnOpen = new QPushButton("启 程", this);
+    m_btnOpen = new QPushButton("打开项目", this);
     m_btnOpen->setObjectName("BtnPrimary");
     m_btnOpen->setDefault(true);
 
-    // 给主按钮加一个“血色呼吸”光晕
+    // 给主按钮加一个蓝色的呼吸光晕
     QGraphicsDropShadowEffect* btnShadow = new QGraphicsDropShadowEffect(m_btnOpen);
     btnShadow->setBlurRadius(20);
-    btnShadow->setColor(QColor(175, 30, 30, 100)); // 半透明红光
+    btnShadow->setColor(QColor(0, 119, 255, 150)); // 亮蓝光
     btnShadow->setOffset(0, 0);
     m_btnOpen->setGraphicsEffect(btnShadow);
 
-    // 呼吸动画
+    // 呼吸动画 (保留一个简单的呼吸效果，增加科技感)
     QPropertyAnimation* pulseAnim = new QPropertyAnimation(btnShadow, "blurRadius", this);
-    pulseAnim->setDuration(2000);
+    pulseAnim->setDuration(1500);
     pulseAnim->setStartValue(10);
     pulseAnim->setEndValue(30);
-    pulseAnim->setEasingCurve(QEasingCurve::SineCurve);
+    pulseAnim->setEasingCurve(QEasingCurve::InOutSine); // 更平滑的曲线
     pulseAnim->setLoopCount(-1);
     pulseAnim->start();
 
@@ -184,81 +186,6 @@ void ProjectSelectionDialog::setupUI() {
     connect(m_projectList, &QListWidget::itemDoubleClicked, this, &ProjectSelectionDialog::onItemDoubleClicked);
 }
 
-void ProjectSelectionDialog::setupAnimations() {
-    // --- 1. 烛光闪烁特效 (Global Flickering) ---
-    m_overlay = new QWidget(this);
-    m_overlay->setStyleSheet("background-color: black;");
-    m_overlay->setAttribute(Qt::WA_TransparentForMouseEvents); // 鼠标穿透
-    m_overlay->resize(this->size());
-    m_overlay->show();
-    m_overlay->raise(); // 放在最顶层
-
-    // 透明度特效
-    QGraphicsOpacityEffect* opacityEffect = new QGraphicsOpacityEffect(m_overlay);
-    opacityEffect->setOpacity(0.15); // 初始暗度
-    m_overlay->setGraphicsEffect(opacityEffect);
-
-    // 定时器控制闪烁
-    m_flickerTimer = new QTimer(this);
-    connect(m_flickerTimer, &QTimer::timeout, this, &ProjectSelectionDialog::onFlickerTimeout);
-    m_flickerTimer->start(100); // 10fps
-
-    // --- 2. 震动特效初始化 ---
-    m_shakeTimer = new QTimer(this);
-    connect(m_shakeTimer, &QTimer::timeout, this, &ProjectSelectionDialog::onShakeTimeout);
-}
-
-void ProjectSelectionDialog::onFlickerTimeout() {
-    // 获取特效对象
-    QGraphicsOpacityEffect* effect = qobject_cast<QGraphicsOpacityEffect*>(m_overlay->graphicsEffect());
-    if (!effect) return;
-
-    // 模拟火把光照的不稳定性
-    double baseOpacity = 0.10; // 基础遮罩浓度 (越小越亮)
-
-    // 随机抖动: -0.02 ~ +0.05
-    double flicker = (QRandomGenerator::global()->bounded(70) - 20) / 1000.0;
-
-    // 偶尔剧烈变暗 (模拟阴影掠过)
-    if (QRandomGenerator::global()->bounded(100) > 95) {
-        flicker += 0.15;
-    }
-
-    effect->setOpacity(baseOpacity + flicker);
-}
-
-void ProjectSelectionDialog::triggerShake() {
-    m_originalPos = this->pos(); // 记录当前位置
-    m_shakeSteps = 10;           // 震动 10 次
-    m_shakeTimer->start(30);     // 30ms 一次
-}
-
-void ProjectSelectionDialog::onShakeTimeout() {
-    if (m_shakeSteps > 0) {
-        // 随机偏移 (-5 ~ 5)
-        int dx = (QRandomGenerator::global()->bounded(10)) - 5;
-        int dy = (QRandomGenerator::global()->bounded(10)) - 5;
-
-        // 随时间衰减幅度
-        dx = dx * (m_shakeSteps / 10.0);
-        dy = dy * (m_shakeSteps / 10.0);
-
-        this->move(m_originalPos.x() + dx, m_originalPos.y() + dy);
-        m_shakeSteps--;
-    } else {
-        this->move(m_originalPos); // 归位
-        m_shakeTimer->stop();
-    }
-}
-
-// 确保遮罩层跟随窗口大小变化
-void ProjectSelectionDialog::resizeEvent(QResizeEvent *event) {
-    if (m_overlay) {
-        m_overlay->resize(this->size());
-    }
-    QDialog::resizeEvent(event);
-}
-
 // --- 业务逻辑 ---
 
 void ProjectSelectionDialog::loadProjects() {
@@ -267,15 +194,16 @@ void ProjectSelectionDialog::loadProjects() {
 
     for (const auto& onto : ontologies) {
         QListWidgetItem* item = new QListWidgetItem(m_projectList);
-        // 使用 Unicode 符号增强风格
-        item->setText(QString("❖ %1  [v%2]").arg(onto.name).arg(onto.version));
+        // 使用更符合科幻主题的 Unicode 图标
+        item->setText(QString("🌌 %1  [v%2]").arg(onto.name).arg(onto.version));
         item->setData(Qt::UserRole, onto.id);
         item->setData(Qt::UserRole + 1, onto.name);
     }
 }
 
 void ProjectSelectionDialog::onCreateProject() {
-    QString name = QInputDialog::getText(this, "新建征途", "请输入项目名称：");
+    // 文案更新为更专业的说法
+    QString name = QInputDialog::getText(this, "新建项目", "请输入项目名称：");
     if (name.trimmed().isEmpty()) return;
 
     QString desc = QInputDialog::getText(this, "描述", "项目描述（可选）：");
@@ -283,8 +211,8 @@ void ProjectSelectionDialog::onCreateProject() {
     if (OntologyRepository::addOntology(name, desc)) {
         loadProjects();
     } else {
-        triggerShake(); // 失败时震动！
-        QMessageBox::warning(this, "创建失败", "无法建立新的征途。\n该名称可能已存在于古老的记录中。");
+        // 移除了 triggerShake()
+        QMessageBox::warning(this, "创建失败", "无法创建项目。\n该名称可能已存在。");
     }
 }
 
@@ -295,12 +223,13 @@ void ProjectSelectionDialog::onDeleteProject() {
     int id = item->data(Qt::UserRole).toInt();
     QString name = item->data(Qt::UserRole + 1).toString();
 
-    auto reply = QMessageBox::question(this, "放弃希望？",
-        QString("你确定要永久遗弃 [%1] 吗？\n此操作产生的后果无法挽回。").arg(name),
+    // 文案更新
+    auto reply = QMessageBox::question(this, "确认删除",
+        QString("确定要删除项目 [%1] 吗？\n此操作无法撤销。").arg(name),
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        triggerShake(); // 删除时剧烈震动！
+        // 移除了 triggerShake()
         OntologyRepository::deleteOntology(id);
         loadProjects();
     }
@@ -309,8 +238,8 @@ void ProjectSelectionDialog::onDeleteProject() {
 void ProjectSelectionDialog::onOpenProject() {
     QListWidgetItem* item = m_projectList->currentItem();
     if (!item) {
-        // 未选中时轻微震动提示
-        triggerShake();
+        // 移除了 triggerShake()
+        QMessageBox::warning(this, "提示", "请先选择一个项目。");
         return;
     }
 
