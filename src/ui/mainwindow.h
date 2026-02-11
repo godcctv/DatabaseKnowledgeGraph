@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QGraphicsScene>
 #include <QEvent>
+#include <QPointF>
 #include "../business/GraphEditor.h" // 引入业务层
 
 
@@ -31,6 +32,7 @@ public:
     void addEdgeToScene(VisualEdge* edge);
 
     void onActionDeleteRelationshipTriggered();
+    void onActionDeleteTriggered();
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
 
@@ -39,7 +41,7 @@ private slots:
     void onActionAddNodeTriggered();
     void onNodeAdded(const GraphNode& node);
 
-    void onActionDeleteTriggered();
+
     void onNodeDeleted(int nodeId);
 
     void onGraphChanged();
@@ -64,6 +66,8 @@ private:
     ForceDirectedLayout* m_layout;
     QTimer* m_timer;
     QueryEngine* m_queryEngine;
+    bool m_hasClickPos = false;
+    QPointF m_clickPos;
     QGraphicsItem* findItemById(int nodeId);
     int m_currentOntologyId;
 

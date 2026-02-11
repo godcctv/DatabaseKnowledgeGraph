@@ -24,6 +24,8 @@
 #include <QToolBar>
 #include <QtMath>
 #include <QRandomGenerator>
+#include <QContextMenuEvent>
+#include <QMenu>
 
 MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -114,7 +116,7 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     connect(m_timer, &QTimer::timeout, m_layout, &ForceDirectedLayout::calculate);
     m_timer->start(30); // 30ms 刷新一次
 
-    // 4. 建立连接
+   //建立连接
     setupConnections();
     setupToolbar();
     updateStatusBar();
@@ -123,6 +125,16 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     if (DatabaseConnection::isConnected()) {
         loadInitialData();
     }
+
+    QTimer *renderTimer = new QTimer(this);
+
+    connect(renderTimer, &QTimer::timeout, this, [this]() {
+        if (m_scene) {
+            m_scene->update(); // 触发全场景重绘
+        }
+    });
+
+    renderTimer->start(16);
 }
 
 MainWindow::~MainWindow() {
@@ -154,31 +166,53 @@ void MainWindow::onActionAddNodeTriggered() {
         GraphNode newNode = dialog.getNodeData();
         newNode.ontologyId = m_currentOntologyId;
 
-        if (!m_graphEditor->addNode(newNode)) {
-            QMessageBox::warning(this, "添加失败",
-                "无法添加节点！可能是节点名称已存在。\n请尝试更换名称。");
+        if (m_hasClickPos) {
+            newNode.posX = m_clickPos.x();
+            newNode.posY = m_clickPos.y();
+            m_hasClickPos = false; // 用完重置
+        } else {
+            // 如果是从上方菜单栏点击的，则随机在中心附近生成
+            newNode.posX = QRandomGenerator::global()->bounded(200) - 100;
+            newNode.posY = QRandomGenerator::global()->bounded(200) - 100;
         }
+
+        if (!m_graphEditor->addNode(newNode)) {
+            QMessageBox::warning(this, "添加失败", "无法添加节点！可能是节点名称已存在。\n请尝试更换名称。");
+        }
+    } else {
+        // 如果取消了对话框，也清理坐标状态
+        m_hasClickPos = false;
     }
 }
 
 void MainWindow::onActionDeleteTriggered() {
+    // 1. 优先尝试从场景(画板)中删除选中的元素
+    QList<QGraphicsItem*> selectedSceneItems = m_scene->selectedItems();
+    if (!selectedSceneItems.isEmpty()) {
+        if (QMessageBox::question(this, "确认删除", "确定要删除选中的实体及其关联吗？") == QMessageBox::Yes) {
+            for(auto item : selectedSceneItems) {
+                if (item->type() == VisualNode::Type) {
+                    int id = item->data(0).toInt();
+                    m_graphEditor->deleteNode(id);
+                } else if (item->type() == VisualEdge::Type) {
+                    VisualEdge* edge = qgraphicsitem_cast<VisualEdge*>(item);
+                    m_graphEditor->deleteRelationship(edge->getId());
+                }
+            }
+        }
+        return; // 处理完毕退出
+    }
+
+    // 2. 如果画板中没有选中，再看右侧属性面板
     QList<QTreeWidgetItem*> selectedItems = ui->propertyPanel->selectedItems();
     if (selectedItems.isEmpty()) {
-        ui->statusbar->showMessage("请先在右侧列表中选中一个节点", 2000);
+        ui->statusbar->showMessage("请先在视图或右侧列表中选中要删除的节点", 2000);
         return;
     }
 
     int nodeId = selectedItems.first()->text(0).toInt();
-    ui->statusbar->showMessage(QString("正在请求数据库删除节点 %1...").arg(nodeId), 0);
-    QCoreApplication::processEvents();
-
-    qDebug() << ">>> [UI] 准备调用后端删除接口, NodeID:" << nodeId;
-    bool success = m_graphEditor->deleteNode(nodeId);
-    qDebug() << ">>> [UI] 后端返回结果:" << success;
-
-    if (!success) {
-        ui->statusbar->showMessage("删除失败！可能是数据库繁忙或连接中断。", 5000);
-        QMessageBox::critical(this, "删除失败", "无法删除节点，请检查数据库连接或控制台日志。");
+    if (QMessageBox::question(this, "确认删除", "确定要删除选中的实体及其关联吗？") == QMessageBox::Yes) {
+        m_graphEditor->deleteNode(nodeId);
     }
 }
 
@@ -188,34 +222,48 @@ void MainWindow::onNodeAdded(const GraphNode& node) {
     }
 }
 void MainWindow::onNodeDeleted(int nodeId) {
-    // 1. 删除右侧列表项
     for (int i = ui->propertyPanel->topLevelItemCount() - 1; i >= 0; --i) {
-        QTreeWidgetItem *item = ui->propertyPanel->topLevelItem(i);
-        if (item->text(0).toInt() == nodeId) {
+        if (ui->propertyPanel->topLevelItem(i)->text(0).toInt() == nodeId) {
             delete ui->propertyPanel->takeTopLevelItem(i);
             break;
         }
     }
 
-    // 2. 删除绘图场景项
-    QList<QGraphicsItem*> itemsToDelete;
+    VisualNode* nodeToDelete = nullptr;
     foreach (QGraphicsItem *item, m_scene->items()) {
-        // 使用 data(0) 或者类型判断
         if (item->type() == VisualNode::Type && item->data(0).toInt() == nodeId) {
-            itemsToDelete.append(item);
+            nodeToDelete = qgraphicsitem_cast<VisualNode*>(item);
+            break;
         }
     }
 
-    for (QGraphicsItem *item : itemsToDelete) {
-        VisualNode* vNode = qgraphicsitem_cast<VisualNode*>(item);
-        if (vNode && m_layout) {
-            m_layout->removeNode(vNode);
+    if (nodeToDelete) {
+        QList<VisualEdge*> edgesToDelete;
+        foreach (QGraphicsItem *item, m_scene->items()) {
+            if (item->type() == VisualEdge::Type) {
+                VisualEdge* edge = qgraphicsitem_cast<VisualEdge*>(item);
+                if (edge->getSourceNode() == nodeToDelete || edge->getDestNode() == nodeToDelete) {
+                    edgesToDelete.append(edge);
+                }
+            }
         }
-        m_scene->removeItem(item);
-        delete item;
+
+        for (VisualEdge* edge : edgesToDelete) {
+            if (edge->getSourceNode()) edge->getSourceNode()->removeEdge(edge);
+            if (edge->getDestNode()) edge->getDestNode()->removeEdge(edge);
+
+            if (m_layout) m_layout->removeEdge(edge);
+
+            m_scene->removeItem(edge);
+            delete edge;
+        }
+
+        if (m_layout) m_layout->removeNode(nodeToDelete);
+        m_scene->removeItem(nodeToDelete);
+        delete nodeToDelete;
     }
 
-    ui->statusbar->showMessage(QString("节点 ID %1 已删除").arg(nodeId), 3000);
+    updateStatusBar();
 }
 
 void MainWindow::onGraphChanged() {
@@ -355,25 +403,48 @@ void MainWindow::onRelationshipDeleted(int edgeId) {
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
-    // 拦截 GraphicsView 视口的滚轮事件
-    if (obj == ui->graphicsView->viewport() && event->type() == QEvent::Wheel) {
-        QWheelEvent *wheelEvent = static_cast<QWheelEvent*>(event);
+    if (obj == ui->graphicsView->viewport()) {
 
-        // 检查是否按住了 Ctrl 键
-        if (wheelEvent->modifiers() & Qt::ControlModifier) {
-            const double scaleFactor = 1.15; // 缩放倍率
-            if (wheelEvent->angleDelta().y() > 0) {
-                // 向上滚：放大
-                ui->graphicsView->scale(scaleFactor, scaleFactor);
-            } else {
-                // 向下滚：缩小
-                ui->graphicsView->scale(1.0 / scaleFactor, 1.0 / scaleFactor);
+        //  处理鼠标滚轮缩放
+        if (event->type() == QEvent::Wheel) {
+            QWheelEvent *wheelEvent = static_cast<QWheelEvent*>(event);
+            if (wheelEvent->modifiers() & Qt::ControlModifier) {
+                const double scaleFactor = 1.1;
+                if (wheelEvent->angleDelta().y() > 0) ui->graphicsView->scale(scaleFactor, scaleFactor);
+                else ui->graphicsView->scale(1.0 / scaleFactor, 1.0 / scaleFactor);
+                return true; // 拦截事件，不再传递
             }
-            // 返回 true 表示事件已被处理，不再传递给默认的滚动条逻辑
-            return true;
+        }
+
+        else if (event->type() == QEvent::ContextMenu) {
+            QContextMenuEvent *cme = static_cast<QContextMenuEvent*>(event);
+
+            // 获取鼠标在场景中的精确坐标
+            QPointF scenePos = ui->graphicsView->mapToScene(cme->pos());
+
+            // 检查鼠标下方是否有实体（节点或边）
+            QGraphicsItem *item = m_scene->itemAt(scenePos, ui->graphicsView->transform());
+
+            if (!item) {
+                // 如果是空白区域，弹出添加节点菜单
+                QMenu menu(this);
+                QAction *addNodeAct = menu.addAction("添加节点");
+
+                // 记录坐标，供生成节点使用
+                m_hasClickPos = true;
+                m_clickPos = scenePos;
+
+                if (menu.exec(cme->globalPos()) == addNodeAct) {
+                    onActionAddNodeTriggered();
+                } else {
+                    m_hasClickPos = false; // 用户取消了操作
+                }
+                return true; // 告诉系统：事件我处理完了，不要再往下传了
+            }
+            // 如果点中了节点或连线，返回 false，让 Qt 系统默认把右键事件传递给 VisualNode/VisualEdge
+            return false;
         }
     }
-    // 其他事件交给父类处理
     return QMainWindow::eventFilter(obj, event);
 }
 
@@ -665,3 +736,4 @@ void MainWindow::onSwitchOntology(int ontologyId, QString name) {
     // 重新查询全图
     onQueryFullGraph();
 }
+
