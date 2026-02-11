@@ -101,6 +101,43 @@ void ForceDirectedLayout::calculate() {
         m_displacements[u] -= displacement.toPointF();
         m_displacements[v] += displacement.toPointF();
     }
+    double orbitSpeed = 1.0; // 旋转的线速度，模拟宇宙公转的稳定速度
+    for (VisualNode* u : m_nodes) {
+        VisualNode* maxMassNeighbor = nullptr;
+        int maxMass = -1;
+
+        // 寻找相连的、质量最大的邻居节点
+        for (VisualEdge* edge : m_edges) {
+            VisualNode* neighbor = nullptr;
+            if (edge->getSourceNode() == u) {
+                neighbor = edge->getDestNode();
+            } else if (edge->getDestNode() == u) {
+                neighbor = edge->getSourceNode();
+            }
+
+            if (neighbor) {
+                int neighborMass = neighbor->getMass();
+                if (neighborMass > maxMass) {
+                    maxMass = neighborMass;
+                    maxMassNeighbor = neighbor;
+                }
+            }
+        }
+
+        // 如果该邻居质量严格大于自己，则被引力捕获并绕其公转
+        if (maxMassNeighbor && maxMass > u->getMass()) {
+            QVector2D vec(u->pos() - maxMassNeighbor->pos());
+            double dist = vec.length();
+            if (dist > 1.0) {
+                // 计算切线方向 (向左旋转 90 度，即产生逆时针公转轨道)
+                QVector2D tangent(-vec.y(), vec.x());
+                tangent.normalize();
+
+                // 将轨道力叠加到该帧的总位移中
+                m_displacements[u] += (tangent * orbitSpeed).toPointF();
+            }
+        }
+    }
 
     // 4. 应用位移
     QPointF center(0, 0);

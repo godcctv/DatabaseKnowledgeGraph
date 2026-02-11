@@ -22,6 +22,9 @@ public:
     enum { Type = UserType + 1 };
     int type() const override { return Type; }
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+
+    int getEdgeCount() const { return m_edges.size(); }
+    int getMass() const;
 protected:
     // 当节点发生改变时，这个函数会被自动调用
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;

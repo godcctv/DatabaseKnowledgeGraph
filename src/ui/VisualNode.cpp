@@ -47,6 +47,7 @@ VisualNode::VisualNode(int id, QString name, QString type, qreal x, qreal y)
 
 void VisualNode::addEdge(QGraphicsLineItem* edge, bool isSource) {
     m_edges.append({edge, isSource});
+    prepareGeometryChange();
 }
 
 QVariant VisualNode::itemChange(GraphicsItemChange change, const QVariant &value) {
@@ -107,7 +108,10 @@ void VisualNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
 
     qint64 currentMs = QDateTime::currentMSecsSinceEpoch();
 
-    qreal coreRadius = 18;
+    // 根据直接关联的节点数量，动态计算基础体积
+    qreal coreRadius = 14 + getEdgeCount() * 2.0;
+    if (coreRadius > 40) coreRadius = 40;
+
     int seed = m_id * 137;
     int styleType = seed % 3;    // 0: 恒星, 1: 行星, 2: 黑洞
     int hue = (seed * 17) % 360;
@@ -123,105 +127,88 @@ void VisualNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
     }
 
     if (styleType == 0) {
-        // ================== 1. 恒星 (Star - 质感等离子体) ==================
-        double pulse = sin(currentMs / 600.0 + seed);
-        qreal glowRadius = coreRadius * 1.8 + pulse * 1.5;
+        // ================== 1. 恒星 (Star - 极简呼吸) ==================
+        double pulse = sin(currentMs / 500.0 + seed);
+        qreal glowRadius = coreRadius * 1.5 + pulse * (coreRadius * 0.1);
 
-        QColor starColor = QColor::fromHsv(hue, 220, 255);
+        QColor starColor = QColor::fromHsv(hue, 200, 255);
 
-        // 1. 日冕层 (Corona) - 使用指数级衰减的渐变，真实感更强
-        QRadialGradient coronaGrad(0, 0, glowRadius);
-        coronaGrad.setColorAt(0, QColor(starColor.red(), starColor.green(), starColor.blue(), 120));
-        coronaGrad.setColorAt(0.4, QColor(starColor.red(), starColor.green(), starColor.blue(), 40));
-        coronaGrad.setColorAt(0.7, QColor(starColor.red(), starColor.green(), starColor.blue(), 10));
-        coronaGrad.setColorAt(1, Qt::transparent);
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(coronaGrad);
-        painter->drawEllipse(QPointF(0, 0), glowRadius, glowRadius);
+        QRadialGradient outerGlow(0, 0, glowRadius);
+        outerGlow.setColorAt(0, QColor(starColor.red(), starColor.green(), starColor.blue(), 80));
+        outerGlow.setColorAt(1, Qt::transparent);
+        painter->fillRect(QRectF(-glowRadius, -glowRadius, glowRadius*2, glowRadius*2), outerGlow);
 
-        // 2. 星球本体与光球层 (Photosphere)
-        QRadialGradient coreGrad(0, 0, coreRadius * 1.1);
-        coreGrad.setColorAt(0, Qt::white);                               // 核心绝对白炽
-        coreGrad.setColorAt(0.3, starColor.lighter(150));                // 过渡带
-        coreGrad.setColorAt(0.8, starColor);                             // 边缘真色
+        QRadialGradient coreGrad(0, 0, coreRadius);
+        coreGrad.setColorAt(0, Qt::white);
+        coreGrad.setColorAt(0.4, starColor.lighter(120));
+        coreGrad.setColorAt(0.9, starColor);
         coreGrad.setColorAt(1, Qt::transparent);
-        painter->setBrush(coreGrad);
-        painter->drawEllipse(QPointF(0, 0), coreRadius * 1.1, coreRadius * 1.1);
 
-        // 3. 表面对流层动态效果 (缓慢自转的微妙亮斑，增加生命力但极度朴素)
-        painter->save();
-        painter->rotate(currentMs / 40.0 + seed);
-        QConicalGradient plasmaGrad(0, 0, 0);
-        plasmaGrad.setColorAt(0, QColor(255, 255, 255, 0));
-        plasmaGrad.setColorAt(0.25, QColor(255, 255, 255, 50));
-        plasmaGrad.setColorAt(0.5, QColor(255, 255, 255, 0));
-        plasmaGrad.setColorAt(0.75, QColor(255, 255, 255, 50));
-        plasmaGrad.setColorAt(1, QColor(255, 255, 255, 0));
-        painter->setBrush(plasmaGrad);
-        painter->drawEllipse(QPointF(0, 0), coreRadius * 0.95, coreRadius * 0.95);
-        painter->restore();
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(coreGrad);
+        painter->drawEllipse(QPointF(0, 0), coreRadius, coreRadius);
 
     } else if (styleType == 1) {
-        // ================== 2. 行星 (Planet - 体积光照与菲涅尔高光) ==================
+        // ================== 2. 行星 (Planet - 干净明暗) ==================
         QColor planetColor = QColor::fromHsv(hue, 160, 200);
         qreal tilt = (seed % 60) - 30;
 
         painter->save();
         painter->rotate(tilt);
 
-        // 1. 大气层外发光 (Atmospheric Scattering)
-        QRadialGradient atmoGrad(-coreRadius * 0.2, -coreRadius * 0.2, coreRadius * 1.3);
-        QColor atmoColor = planetColor.lighter(130);
-        atmoGrad.setColorAt(0.4, QColor(atmoColor.red(), atmoColor.green(), atmoColor.blue(), 60));
-        atmoGrad.setColorAt(0.8, QColor(atmoColor.red(), atmoColor.green(), atmoColor.blue(), 15));
-        atmoGrad.setColorAt(1, Qt::transparent);
-
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(atmoGrad);
-        painter->drawEllipse(QPointF(0, 0), coreRadius * 1.3, coreRadius * 1.3);
-
-        // 2. 行星本体 (逼真的体积阴影，呈现完美的球体质感)
-        QRadialGradient bodyGrad(-coreRadius * 0.35, -coreRadius * 0.35, coreRadius * 1.4);
-        bodyGrad.setColorAt(0, planetColor.lighter(150)); // 高光点
-        bodyGrad.setColorAt(0.3, planetColor);            // 受光面
-        bodyGrad.setColorAt(0.65, planetColor.darker(300));// 晨昏线，急剧变暗
-        bodyGrad.setColorAt(0.9, QColor(5, 5, 10));       // 暗面，融入背景
+        QRadialGradient bodyGrad(-coreRadius * 0.3, -coreRadius * 0.3, coreRadius * 1.5);
+        bodyGrad.setColorAt(0, planetColor.lighter(150));
+        bodyGrad.setColorAt(0.5, planetColor);
+        bodyGrad.setColorAt(0.85, planetColor.darker(250));
         bodyGrad.setColorAt(1, QColor(0, 0, 0));
 
-        painter->setPen(QPen(QColor(0, 0, 0, 100), 0.5)); // 边缘抗锯齿微调
+        painter->setPen(QPen(QColor(0, 0, 0, 150), 1));
         painter->setBrush(bodyGrad);
-        painter->drawEllipse(QPointF(0, 0), coreRadius, coreRadius);
-
-        // 3. 菲涅尔高光 (Fresnel Rim Light) 增加晶莹剔透的通透感
-        QRadialGradient rimGrad(-coreRadius * 0.5, -coreRadius * 0.5, coreRadius * 1.1);
-        rimGrad.setColorAt(0, QColor(255, 255, 255, 80));
-        rimGrad.setColorAt(0.4, Qt::transparent);
-        painter->setBrush(rimGrad);
         painter->drawEllipse(QPointF(0, 0), coreRadius, coreRadius);
 
         painter->restore();
 
     } else {
-        // ================== 3. 黑洞 (Black Hole - 极简光子圈，保持原样) ==================
+        // ================== 3. 黑洞 (Black Hole - 完美光子圈恢复版) ==================
         QColor glowColor = QColor::fromHsv(hue, 150, 255);
-
         double holePulse = sin(currentMs / 500.0 + seed);
-        qreal lensRadius = coreRadius * 1.5 + holePulse * 1.5;
 
-        // 微弱的引力透镜发光
+        // 光晕拉大，给光子环充足展示空间
+        qreal lensRadius = coreRadius * 1.5 + holePulse * (coreRadius * 0.15);
+
         QRadialGradient lensGrad(0, 0, lensRadius);
-        lensGrad.setColorAt(0.4, Qt::transparent);
-        lensGrad.setColorAt(0.5, Qt::white);
-        lensGrad.setColorAt(0.65, glowColor.lighter(120));
+
+        // 精准计算白环位置，保证绝对视界的纯黑部分不遮挡最耀眼的光子球
+        lensGrad.setColorAt(0.35, Qt::transparent);
+        lensGrad.setColorAt(0.42, Qt::white);  // 极其明亮锐利的光子环！
+        lensGrad.setColorAt(0.6, glowColor.lighter(120));
         lensGrad.setColorAt(1, Qt::transparent);
 
         painter->setPen(Qt::NoPen);
         painter->setBrush(lensGrad);
         painter->drawEllipse(QPointF(0, 0), lensRadius, lensRadius);
 
-        // 纯净的绝对视界黑体
-        painter->setPen(QPen(QColor(255, 255, 255, 80), 1.0));
+        // 纯净的绝对视界黑体，半径为 0.85 * coreRadius
+        painter->setPen(QPen(QColor(255, 255, 255, 100), 1.0));
         painter->setBrush(Qt::black);
         painter->drawEllipse(QPointF(0, 0), coreRadius * 0.85, coreRadius * 0.85);
     }
+}
+int VisualNode::getMass() const {
+    int seed = m_id * 137;
+    int style = seed % 3; // 不用哈希，仅依赖ID生成样式
+    int baseMass = 0;
+
+    // 赋予不同类型初始基础质量
+    if (style == 2) {
+        baseMass = 10000; // 黑洞：质量天花板
+    } else if (style == 0) {
+        baseMass = 3000;  // 恒星：质量中等
+    } else {
+        baseMass = 500;   // 行星：质量最小
+    }
+
+    // 关系越多，质量越大（模拟质量累积）
+    int edgeWeight = (style == 2) ? 1000 : 200;
+    return baseMass + getEdgeCount() * edgeWeight;
 }
