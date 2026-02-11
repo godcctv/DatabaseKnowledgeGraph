@@ -114,6 +114,8 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     connect(m_timer, &QTimer::timeout, m_layout, &ForceDirectedLayout::calculate);
     m_timer->start(30); // 30ms 刷新一次
 
+    ui->graphicsView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->graphicsView, &QWidget::customContextMenuRequested, this, &MainWindow::onGraphicsViewContextMenu);
     // 4. 建立连接
     setupConnections();
     setupToolbar();
@@ -154,31 +156,53 @@ void MainWindow::onActionAddNodeTriggered() {
         GraphNode newNode = dialog.getNodeData();
         newNode.ontologyId = m_currentOntologyId;
 
-        if (!m_graphEditor->addNode(newNode)) {
-            QMessageBox::warning(this, "添加失败",
-                "无法添加节点！可能是节点名称已存在。\n请尝试更换名称。");
+        if (m_hasClickPos) {
+            newNode.posX = m_clickPos.x();
+            newNode.posY = m_clickPos.y();
+            m_hasClickPos = false; // 用完重置
+        } else {
+            // 如果是从上方菜单栏点击的，则随机在中心附近生成
+            newNode.posX = QRandomGenerator::global()->bounded(200) - 100;
+            newNode.posY = QRandomGenerator::global()->bounded(200) - 100;
         }
+
+        if (!m_graphEditor->addNode(newNode)) {
+            QMessageBox::warning(this, "添加失败", "无法添加节点！可能是节点名称已存在。\n请尝试更换名称。");
+        }
+    } else {
+        // 如果取消了对话框，也清理坐标状态
+        m_hasClickPos = false;
     }
 }
 
 void MainWindow::onActionDeleteTriggered() {
+    // 1. 优先尝试从场景(画板)中删除选中的元素
+    QList<QGraphicsItem*> selectedSceneItems = m_scene->selectedItems();
+    if (!selectedSceneItems.isEmpty()) {
+        if (QMessageBox::question(this, "确认删除", "确定要删除选中的实体及其关联吗？") == QMessageBox::Yes) {
+            for(auto item : selectedSceneItems) {
+                if (item->type() == VisualNode::Type) {
+                    int id = item->data(0).toInt();
+                    m_graphEditor->deleteNode(id);
+                } else if (item->type() == VisualEdge::Type) {
+                    VisualEdge* edge = qgraphicsitem_cast<VisualEdge*>(item);
+                    m_graphEditor->deleteRelationship(edge->getId());
+                }
+            }
+        }
+        return; // 处理完毕退出
+    }
+
+    // 2. 如果画板中没有选中，再看右侧属性面板
     QList<QTreeWidgetItem*> selectedItems = ui->propertyPanel->selectedItems();
     if (selectedItems.isEmpty()) {
-        ui->statusbar->showMessage("请先在右侧列表中选中一个节点", 2000);
+        ui->statusbar->showMessage("请先在视图或右侧列表中选中要删除的节点", 2000);
         return;
     }
 
     int nodeId = selectedItems.first()->text(0).toInt();
-    ui->statusbar->showMessage(QString("正在请求数据库删除节点 %1...").arg(nodeId), 0);
-    QCoreApplication::processEvents();
-
-    qDebug() << ">>> [UI] 准备调用后端删除接口, NodeID:" << nodeId;
-    bool success = m_graphEditor->deleteNode(nodeId);
-    qDebug() << ">>> [UI] 后端返回结果:" << success;
-
-    if (!success) {
-        ui->statusbar->showMessage("删除失败！可能是数据库繁忙或连接中断。", 5000);
-        QMessageBox::critical(this, "删除失败", "无法删除节点，请检查数据库连接或控制台日志。");
+    if (QMessageBox::question(this, "确认删除", "确定要删除选中的实体及其关联吗？") == QMessageBox::Yes) {
+        m_graphEditor->deleteNode(nodeId);
     }
 }
 
@@ -678,4 +702,29 @@ void MainWindow::onSwitchOntology(int ontologyId, QString name) {
 
     // 重新查询全图
     onQueryFullGraph();
+}
+
+void MainWindow::onGraphicsViewContextMenu(const QPoint &pos) {
+    // 将屏幕鼠标坐标转换为场景坐标
+    QPointF scenePos = ui->graphicsView->mapToScene(pos);
+
+    // 检查鼠标下方是否有物品 (节点或边)
+    QGraphicsItem *item = m_scene->itemAt(scenePos, ui->graphicsView->transform());
+
+    // 如果点击的是空白处
+    if (!item) {
+        QMenu menu(this);
+        QAction *addNodeAct = menu.addAction("添加节点");
+
+        // 记录用户点击的位置，让新节点生成在这里
+        m_hasClickPos = true;
+        m_clickPos = scenePos;
+
+        if (menu.exec(ui->graphicsView->mapToGlobal(pos)) == addNodeAct) {
+            onActionAddNodeTriggered();
+        } else {
+            // 如果菜单消失但用户没有点击，重置坐标状态
+            m_hasClickPos = false;
+        }
+    }
 }

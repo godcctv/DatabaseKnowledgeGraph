@@ -26,7 +26,7 @@ public:
 protected:
     // 当节点发生改变时，这个函数会被自动调用
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
-
+    void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
 private:
     int m_id;
     QString m_name;

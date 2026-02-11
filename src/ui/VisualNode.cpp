@@ -1,5 +1,6 @@
 #include "VisualNode.h"
 #include "VisualEdge.h"
+#include "mainwindow.h"
 #include <QBrush>
 #include <QPen>
 #include <QRadialGradient>
@@ -7,6 +8,9 @@
 #include <QGraphicsDropShadowEffect>
 #include <QFont>
 #include <QCursor>
+#include <QMenu>
+#include <QGraphicsView>
+#include <QGraphicsSceneContextMenuEvent>
 
 // src/ui/VisualNode.cpp
 
@@ -96,6 +100,30 @@ void VisualNode::removeEdge(QGraphicsLineItem* edge) {
         if (m_edges[i].line == edge) {
             m_edges.removeAt(i);
             break; // 找到并移除后退出
+        }
+    }
+}
+
+void VisualNode::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
+    // 1. 自动选中当前右键的节点
+    setSelected(true);
+
+    // 2. 创建并显示菜单
+    QMenu menu;
+    QAction *deleteAction = menu.addAction("删除节点");
+    QAction *selectedAction = menu.exec(event->screenPos());
+
+    // 3. 执行删除指令
+    if (selectedAction == deleteAction) {
+        if (scene()) {
+            foreach (QGraphicsView *view, scene()->views()) {
+                MainWindow *window = qobject_cast<MainWindow*>(view->window());
+                if (window) {
+                    // 调用主窗口的删除操作
+                    window->onActionDeleteTriggered();
+                    break;
+                }
+            }
         }
     }
 }
