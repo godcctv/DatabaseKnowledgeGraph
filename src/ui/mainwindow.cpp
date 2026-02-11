@@ -188,34 +188,48 @@ void MainWindow::onNodeAdded(const GraphNode& node) {
     }
 }
 void MainWindow::onNodeDeleted(int nodeId) {
-    // 1. 删除右侧列表项
     for (int i = ui->propertyPanel->topLevelItemCount() - 1; i >= 0; --i) {
-        QTreeWidgetItem *item = ui->propertyPanel->topLevelItem(i);
-        if (item->text(0).toInt() == nodeId) {
+        if (ui->propertyPanel->topLevelItem(i)->text(0).toInt() == nodeId) {
             delete ui->propertyPanel->takeTopLevelItem(i);
             break;
         }
     }
 
-    // 2. 删除绘图场景项
-    QList<QGraphicsItem*> itemsToDelete;
+    VisualNode* nodeToDelete = nullptr;
     foreach (QGraphicsItem *item, m_scene->items()) {
-        // 使用 data(0) 或者类型判断
         if (item->type() == VisualNode::Type && item->data(0).toInt() == nodeId) {
-            itemsToDelete.append(item);
+            nodeToDelete = qgraphicsitem_cast<VisualNode*>(item);
+            break;
         }
     }
 
-    for (QGraphicsItem *item : itemsToDelete) {
-        VisualNode* vNode = qgraphicsitem_cast<VisualNode*>(item);
-        if (vNode && m_layout) {
-            m_layout->removeNode(vNode);
+    if (nodeToDelete) {
+        QList<VisualEdge*> edgesToDelete;
+        foreach (QGraphicsItem *item, m_scene->items()) {
+            if (item->type() == VisualEdge::Type) {
+                VisualEdge* edge = qgraphicsitem_cast<VisualEdge*>(item);
+                if (edge->getSourceNode() == nodeToDelete || edge->getDestNode() == nodeToDelete) {
+                    edgesToDelete.append(edge);
+                }
+            }
         }
-        m_scene->removeItem(item);
-        delete item;
+
+        for (VisualEdge* edge : edgesToDelete) {
+            if (edge->getSourceNode()) edge->getSourceNode()->removeEdge(edge);
+            if (edge->getDestNode()) edge->getDestNode()->removeEdge(edge);
+
+            if (m_layout) m_layout->removeEdge(edge);
+
+            m_scene->removeItem(edge);
+            delete edge;
+        }
+
+        if (m_layout) m_layout->removeNode(nodeToDelete);
+        m_scene->removeItem(nodeToDelete);
+        delete nodeToDelete;
     }
 
-    ui->statusbar->showMessage(QString("节点 ID %1 已删除").arg(nodeId), 3000);
+    updateStatusBar();
 }
 
 void MainWindow::onGraphChanged() {
