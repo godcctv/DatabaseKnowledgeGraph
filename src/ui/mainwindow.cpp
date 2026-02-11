@@ -310,7 +310,7 @@ void MainWindow::onActionAddRelationshipTriggered() {
 
     if (dialog.exec() == QDialog::Accepted) {
         GraphEdge edge = dialog.getEdgeData();
-        edge.ontologyId = 1;
+        edge.ontologyId = m_currentOntologyId;
         edge.sourceId = id1;
         edge.targetId = id2;
 
