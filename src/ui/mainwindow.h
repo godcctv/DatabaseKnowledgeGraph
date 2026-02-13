@@ -5,6 +5,7 @@
 #include <QGraphicsScene>
 #include <QEvent>
 #include <QPointF>
+#include <QDockWidget>
 #include "../business/GraphEditor.h" // 引入业务层
 
 
@@ -62,6 +63,7 @@ private slots:
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;
+    QDockWidget *m_controlDock;
     QGraphicsScene *m_scene;
     ForceDirectedLayout* m_layout;
     QTimer* m_timer;
@@ -76,5 +78,6 @@ private:
     void setupToolbar();
     void drawNode(int id, QString name, QString type, double x, double y);
     void drawEdge(const GraphEdge& edge);
+    void createControlPanel();
 };
 #endif // MAINWINDOW_H

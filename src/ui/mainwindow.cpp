@@ -26,6 +26,11 @@
 #include <QRandomGenerator>
 #include <QContextMenuEvent>
 #include <QMenu>
+#include <QDockWidget>
+#include <QGroupBox>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QSlider>
 
 MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -116,6 +121,7 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     connect(m_timer, &QTimer::timeout, m_layout, &ForceDirectedLayout::calculate);
     m_timer->start(30); // 30ms 刷新一次
 
+    createControlPanel();
    //建立连接
     setupConnections();
     setupToolbar();
@@ -477,6 +483,18 @@ void MainWindow::setupToolbar() {
     actToggle->setChecked(false);
     ui->propertyPanel->setVisible(false);
     connect(actToggle, &QAction::triggered, this, &MainWindow::onTogglePropertyPanel);
+
+    QAction* actParams = toolbar->addAction("参数调节");
+    actParams->setToolTip("打开/关闭引力参数控制台");
+    actParams->setCheckable(true); // 让按钮变成可按下的状态
+
+    // 连接点击信号：控制面板的显示/隐藏
+    connect(actParams, &QAction::toggled, this, [this](bool checked){
+        m_controlDock->setVisible(checked);
+    });
+
+    // 双向绑定：如果用户点了面板右上角的 'X' 关闭，按钮状态也要弹起来
+    connect(m_controlDock, &QDockWidget::visibilityChanged, actParams, &QAction::setChecked);
 }
 
 void MainWindow::onTogglePropertyPanel() {
@@ -735,5 +753,54 @@ void MainWindow::onSwitchOntology(int ontologyId, QString name) {
 
     // 重新查询全图
     onQueryFullGraph();
+}
+
+void MainWindow::createControlPanel() {
+    // 1. 创建停靠窗口
+    m_controlDock = new QDockWidget("参数控制台", this);
+    m_controlDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
+
+    // 2. 创建面板内的容器
+    QWidget *container = new QWidget();
+    QVBoxLayout *layout = new QVBoxLayout(container);
+    layout->setSpacing(20); // 控件稍微隔开点
+
+    // --- 斥力滑块 ---
+    layout->addWidget(new QLabel("斥力 :"));
+    QSlider *sldRepulsion = new QSlider(Qt::Horizontal);
+    sldRepulsion->setRange(100, 2000);
+    sldRepulsion->setValue(800); // 默认值
+    connect(sldRepulsion, &QSlider::valueChanged, this, [this](int val){
+        if(m_layout) m_layout->setRepulsion(val);
+    });
+    layout->addWidget(sldRepulsion);
+
+    // --- 引力滑块 ---
+    layout->addWidget(new QLabel("引力:"));
+    QSlider *sldStiffness = new QSlider(Qt::Horizontal);
+    sldStiffness->setRange(1, 20); // 0.01 - 0.20
+    sldStiffness->setValue(8);
+    connect(sldStiffness, &QSlider::valueChanged, this, [this](int val){
+        if(m_layout) m_layout->setStiffness(val / 100.0);
+    });
+    layout->addWidget(sldStiffness);
+
+    // --- 公转速度滑块 ---
+    layout->addWidget(new QLabel("公转速度 :"));
+    QSlider *sldSpeed = new QSlider(Qt::Horizontal);
+    sldSpeed->setRange(0, 50); // 0.0 - 5.0
+    sldSpeed->setValue(10); // 默认 1.0
+    connect(sldSpeed, &QSlider::valueChanged, this, [this](int val){
+        if(m_layout) m_layout->setOrbitSpeed(val / 10.0);
+    });
+    layout->addWidget(sldSpeed);
+
+    // 底部弹簧，把控件顶上去
+    layout->addStretch();
+
+    // 3. 装载并初始隐藏
+    m_controlDock->setWidget(container);
+    this->addDockWidget(Qt::RightDockWidgetArea, m_controlDock);
+    m_controlDock->setVisible(false); // 默认隐藏，保持界面清爽
 }
 
