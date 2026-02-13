@@ -29,8 +29,44 @@
 #include <QDockWidget>
 #include <QGroupBox>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QSlider>
+#include <QSpinBox>
+QWidget* createSliderRow(QWidget* parent, const QString& labelText, int min, int max, int val, const QString& suffix, std::function<void(int)> callback) {
+    QWidget* widget = new QWidget(parent);
+    QHBoxLayout* layout = new QHBoxLayout(widget);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    QLabel* label = new QLabel(labelText, widget);
+    label->setMinimumWidth(60);
+
+    QSlider* slider = new QSlider(Qt::Horizontal, widget);
+    slider->setRange(min, max);
+    slider->setValue(val);
+
+    // 数值显示框
+    QSpinBox* spinBox = new QSpinBox(widget);
+    spinBox->setRange(min, max);
+    spinBox->setValue(val);
+    spinBox->setSuffix(suffix);
+    spinBox->setButtonSymbols(QAbstractSpinBox::NoButtons); // 隐藏上下箭头，纯显示用
+    spinBox->setFixedWidth(60);
+    spinBox->setAlignment(Qt::AlignCenter);
+
+    // 双向绑定：滑块动 -> 数字变 -> 触发回调
+    QObject::connect(slider, &QSlider::valueChanged, spinBox, &QSpinBox::setValue);
+    QObject::connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), slider, &QSlider::setValue);
+
+    // 核心回调
+    QObject::connect(slider, &QSlider::valueChanged, callback);
+
+    layout->addWidget(label);
+    layout->addWidget(slider);
+    layout->addWidget(spinBox);
+
+    return widget;
+}
 
 MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -760,47 +796,50 @@ void MainWindow::createControlPanel() {
     m_controlDock = new QDockWidget("参数控制台", this);
     m_controlDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
 
+    // 🔥 核心修改：去除标题栏按钮 🔥
+    // NoDockWidgetFeatures: 去除所有按钮（关闭、浮动）
+    // DockWidgetVerticalTitleBar: (可选) 如果你想要侧边标题栏
+    m_controlDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+
+    // 如果你想完全隐藏标题栏（看起来像原生面板），可以使用这一行：
+    // QWidget* titleWidget = new QWidget(this);
+    // m_controlDock->setTitleBarWidget(titleWidget);
+
     // 2. 创建面板内的容器
     QWidget *container = new QWidget();
-    QVBoxLayout *layout = new QVBoxLayout(container);
-    layout->setSpacing(20); // 控件稍微隔开点
+    // 设置深色背景或边框，增加质感 (可选 CSS)
+    container->setStyleSheet("QWidget { background-color: rgba(30, 30, 40, 200); border-radius: 5px; } QLabel { color: #ddd; font-weight: bold; }");
 
-    // --- 斥力滑块 ---
-    layout->addWidget(new QLabel("斥力 :"));
-    QSlider *sldRepulsion = new QSlider(Qt::Horizontal);
-    sldRepulsion->setRange(100, 2000);
-    sldRepulsion->setValue(800); // 默认值
-    connect(sldRepulsion, &QSlider::valueChanged, this, [this](int val){
-        if(m_layout) m_layout->setRepulsion(val);
-    });
-    layout->addWidget(sldRepulsion);
+    QVBoxLayout *mainLayout = new QVBoxLayout(container);
+    mainLayout->setSpacing(12); // 稍微紧凑一点的间距
+    mainLayout->setContentsMargins(15, 20, 15, 20); // 增加内边距，不那么拥挤
+    // --- 斥力 (Repulsion) ---
+    mainLayout->addWidget(createSliderRow(container, "星体斥力:", 100, 3000,
+        static_cast<int>(m_layout->getRepulsion()), "",
+        [this](int val){ if(m_layout) m_layout->setRepulsion(val); }));
 
-    // --- 引力滑块 ---
-    layout->addWidget(new QLabel("引力:"));
-    QSlider *sldStiffness = new QSlider(Qt::Horizontal);
-    sldStiffness->setRange(1, 20); // 0.01 - 0.20
-    sldStiffness->setValue(8);
-    connect(sldStiffness, &QSlider::valueChanged, this, [this](int val){
-        if(m_layout) m_layout->setStiffness(val / 100.0);
-    });
-    layout->addWidget(sldStiffness);
+    // --- 引力 (Stiffness) ---
+    mainLayout->addWidget(createSliderRow(container, "引力强度:", 1, 20,
+        static_cast<int>(m_layout->getStiffness() * 100), "",
+        [this](int val){ if(m_layout) m_layout->setStiffness(val / 100.0); }));
 
-    // --- 公转速度滑块 ---
-    layout->addWidget(new QLabel("公转速度 :"));
-    QSlider *sldSpeed = new QSlider(Qt::Horizontal);
-    sldSpeed->setRange(0, 50); // 0.0 - 5.0
-    sldSpeed->setValue(10); // 默认 1.0
-    connect(sldSpeed, &QSlider::valueChanged, this, [this](int val){
-        if(m_layout) m_layout->setOrbitSpeed(val / 10.0);
-    });
-    layout->addWidget(sldSpeed);
+    // --- 阻尼 (Damping) ---
+    mainLayout->addWidget(createSliderRow(container, "空间阻力:", 50, 99,
+        static_cast<int>(m_layout->getDamping() * 100), "%",
+        [this](int val){ if(m_layout) m_layout->setDamping(val / 100.0); }));
 
-    // 底部弹簧，把控件顶上去
-    layout->addStretch();
+    // --- 公转速度 (Orbit Speed) ---
+    mainLayout->addWidget(createSliderRow(container, "公转速度:", 0, 50,
+        static_cast<int>(m_layout->getOrbitSpeed() * 10), "",
+        [this](int val){ if(m_layout) m_layout->setOrbitSpeed(val / 10.0); }));
 
-    // 3. 装载并初始隐藏
+    // 底部弹簧
+    mainLayout->addStretch();
+
+    // 3. 装载
     m_controlDock->setWidget(container);
     this->addDockWidget(Qt::RightDockWidgetArea, m_controlDock);
-    m_controlDock->setVisible(false); // 默认隐藏，保持界面清爽
-}
 
+    // 默认隐藏，由工具栏按钮控制显示
+    m_controlDock->setVisible(false);
+}
