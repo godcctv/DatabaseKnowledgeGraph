@@ -756,8 +756,18 @@ void MainWindow::onQueryPath() {
         }
 
         if (prevVNode && currVNode) {
-            // 连线
-            VisualEdge* edge = new VisualEdge(-1, prevVNode->getId(), currVNode->getId(), "path", prevVNode, currVNode);
+            QString actualRelationType = "未知";
+            QList<GraphEdge> relatedEdges = m_queryEngine->getRelatedRelationships(prevVNode->getId());
+
+            for (const auto& e : relatedEdges) {
+                if ((e.sourceId == prevVNode->getId() && e.targetId == currVNode->getId()) ||
+                    (e.sourceId == currVNode->getId() && e.targetId == prevVNode->getId())) {
+                    actualRelationType = e.relationType;
+                    break;
+                    }
+            }
+            
+            VisualEdge* edge = new VisualEdge(-1, prevVNode->getId(), currVNode->getId(), actualRelationType, prevVNode, currVNode);
             m_scene->addItem(edge);
             prevVNode->addEdge(edge, true);
             currVNode->addEdge(edge, false);
@@ -796,14 +806,8 @@ void MainWindow::createControlPanel() {
     m_controlDock = new QDockWidget("参数控制台", this);
     m_controlDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
 
-    // 🔥 核心修改：去除标题栏按钮 🔥
-    // NoDockWidgetFeatures: 去除所有按钮（关闭、浮动）
-    // DockWidgetVerticalTitleBar: (可选) 如果你想要侧边标题栏
-    m_controlDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
 
-    // 如果你想完全隐藏标题栏（看起来像原生面板），可以使用这一行：
-    // QWidget* titleWidget = new QWidget(this);
-    // m_controlDock->setTitleBarWidget(titleWidget);
+    m_controlDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
 
     // 2. 创建面板内的容器
     QWidget *container = new QWidget();
