@@ -11,9 +11,9 @@ AddNodeDialog::AddNodeDialog(QWidget *parent) :
     ui->setupUi(this);
 
     // 初始化下拉框类型
-    ui->typeCombo->addItem("Concept");
-    ui->typeCombo->addItem("Entity");
-    ui->typeCombo->addItem("Method");
+    ui->typeCombo->addItem("概念");
+    ui->typeCombo->addItem("实体");
+    ui->typeCombo->addItem("方法");
 
     // 连接信号槽（如果UI里没选自动连接）
     connect(ui->btnOk, &QPushButton::clicked, this, &AddNodeDialog::on_btnOk_clicked);

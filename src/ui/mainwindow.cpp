@@ -843,3 +843,19 @@ void MainWindow::createControlPanel() {
     // 默认隐藏，由工具栏按钮控制显示
     m_controlDock->setVisible(false);
 }
+
+void MainWindow::showNodeDetails(int nodeId) {
+
+    GraphNode node = m_queryEngine->getNodeById(nodeId);
+    if (!node.isValid()) return;
+
+    QString desc = node.description.trimmed().isEmpty() ? "（无描述信息）" : node.description;
+
+    QString info = QString("【节点 ID】: %1\n【节点名称】: %2\n【节点类型】: %3\n\n【详细描述】:\n%4")
+                       .arg(node.id)
+                       .arg(node.name)
+                       .arg(node.nodeType)
+                       .arg(desc);
+
+    QMessageBox::information(this, "节点详细信息", info);
+}

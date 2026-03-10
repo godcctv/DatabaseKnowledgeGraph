@@ -11,6 +11,7 @@
 #include <QMenu>
 #include <QGraphicsView>
 #include <QGraphicsSceneContextMenuEvent>
+#include <QGraphicsSceneMouseEvent>
 #include <QDateTime>
 #include <QtMath>
 
@@ -211,4 +212,18 @@ int VisualNode::getMass() const {
     // 关系越多，质量越大（模拟质量累积）
     int edgeWeight = (style == 2) ? 1000 : 200;
     return baseMass + getEdgeCount() * edgeWeight;
+}
+
+void VisualNode::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) {
+    if (scene()) {
+        foreach (QGraphicsView *view, scene()->views()) {
+            MainWindow *window = qobject_cast<MainWindow*>(view->window());
+            if (window) {
+                // 调用主窗口的公开方法来显示详情
+                window->showNodeDetails(m_id);
+                break;
+            }
+        }
+    }
+    QGraphicsEllipseItem::mouseDoubleClickEvent(event);
 }

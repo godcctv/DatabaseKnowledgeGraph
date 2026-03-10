@@ -34,6 +34,7 @@ public:
 
     void onActionDeleteRelationshipTriggered();
     void onActionDeleteTriggered();
+    void showNodeDetails(int nodeId);
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
 
