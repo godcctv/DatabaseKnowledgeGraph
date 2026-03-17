@@ -87,7 +87,7 @@ public:
     void undo() override { RelationshipRepository::deleteRelationship(m_edge.id); }
 };
 
-// ===== 修复完整性: 添加缺失的DeleteEdgeCommand =====
+
 class DeleteEdgeCommand : public EditorCommand {
     GraphEdge m_backup;
 public:
@@ -98,5 +98,15 @@ public:
         RelationshipRepository::addRelationship(temp);
     }
 };
+
+class UpdateEdgeCommand : public EditorCommand {
+    GraphEdge m_old;
+    GraphEdge m_new;
+public:
+    UpdateEdgeCommand(const GraphEdge& o, const GraphEdge& n) : m_old(o), m_new(n) {}
+    void execute() override { RelationshipRepository::updateRelationship(m_new); }
+    void undo() override { RelationshipRepository::updateRelationship(m_old); }
+};
+
 
 #endif

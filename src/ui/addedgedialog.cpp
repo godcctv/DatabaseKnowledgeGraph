@@ -9,7 +9,7 @@ AddEdgeDialog::AddEdgeDialog(QWidget *parent) :
     ui->setupUi(this);
 
     // 初始化一些常用关系类型
-    ui->typeCombo->addItems({"Include", "RelatedTo", "Dependency", "SubClassOf"});
+    ui->typeCombo->addItems({"包含", "关联", "依赖", "子类"});
 
     // 连接信号
     connect(ui->btnOk, &QPushButton::clicked, this, &AddEdgeDialog::on_btnOk_clicked);
@@ -43,4 +43,8 @@ void AddEdgeDialog::on_btnOk_clicked() {
 
 void AddEdgeDialog::on_btnCancel_clicked() {
     reject();
+}
+
+void AddEdgeDialog::setEdgeData(const GraphEdge& edge) {
+    ui->typeCombo->setCurrentText(edge.relationType);
 }

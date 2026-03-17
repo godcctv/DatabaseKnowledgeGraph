@@ -22,7 +22,7 @@ public:
     QRectF boundingRect() const override;
     // 更新线条位置
     void updatePosition();
-
+    void updateData(QString newRelationType);
     void setOffset(qreal value) {
         if (m_offset != value) {
             prepareGeometryChange();

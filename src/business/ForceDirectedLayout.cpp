@@ -7,12 +7,13 @@
 
 ForceDirectedLayout::ForceDirectedLayout(QObject *parent) : QObject(parent) {
     // --- 物理参数初始化 ---
-    m_stiffness = 0.08;      // 弹性系数 (拉力): 越大线越紧
-    m_repulsion = 800.0;   // 斥力强度 (推力): 越大节点分得越开
-    m_damping = 0.85;        // 阻尼 (0.0-1.0): 越小停得越快
-    m_idealLength = 120.0;   // 理想边长
-    m_centerAttraction = 0.04; // 向心力
-    m_maxVelocity = 30.0;    // 最大速度限制
+    m_stiffness = 0.08;
+    m_repulsion = 800.0;
+    m_damping = 0.85;
+    m_idealLength = 120.0;
+    m_centerAttraction = 0.04;
+    m_maxVelocity = 30.0;
+    m_orbitSpeed = 1.0;
 }
 
 void ForceDirectedLayout::addNode(VisualNode* node) {
@@ -48,19 +49,13 @@ void ForceDirectedLayout::clear() {
 void ForceDirectedLayout::calculate() {
     if (m_nodes.isEmpty()) return;
 
-    // --- 调试日志 (每 60 帧打印一次，证明算法在跑) ---
-    static int frameCounter = 0;
-    if (frameCounter++ > 60) {
-        qDebug() << "Layout: Physics running... Nodes:" << m_nodes.size() << "Edges:" << m_edges.size();
-        frameCounter = 0;
-    }
 
-    // 1. 初始化位移
+    // 初始化位移
     for (VisualNode* node : m_nodes) {
         m_displacements[node] = QPointF(0, 0);
     }
 
-    // 2. 计算斥力 (Repulsion) - 所有节点之间
+    // 计算斥力  - 所有节点之间
     for (int i = 0; i < m_nodes.size(); ++i) {
         for (int j = i + 1; j < m_nodes.size(); ++j) {
             VisualNode* u = m_nodes[i];
@@ -83,10 +78,8 @@ void ForceDirectedLayout::calculate() {
         }
     }
 
-    // 3. 计算引力 (Attraction) - 仅在连接的边之间
+    // 计算引力- 仅在连接的边之间
     for (VisualEdge* edge : m_edges) {
-        // 注意：请确保 VisualEdge 类中有 getSourceNode() 和 getDestNode() 方法
-        // 如果你的方法名是 sourceNode()，请在这里修改
         VisualNode* u = edge->getSourceNode();
         VisualNode* v = edge->getDestNode();
 
@@ -100,6 +93,42 @@ void ForceDirectedLayout::calculate() {
 
         m_displacements[u] -= displacement.toPointF();
         m_displacements[v] += displacement.toPointF();
+    }
+
+    for (VisualNode* u : m_nodes) {
+        VisualNode* maxMassNeighbor = nullptr;
+        int maxMass = -1;
+
+        // 寻找相连的、质量最大的邻居节点
+        for (VisualEdge* edge : m_edges) {
+            VisualNode* neighbor = nullptr;
+            if (edge->getSourceNode() == u) {
+                neighbor = edge->getDestNode();
+            } else if (edge->getDestNode() == u) {
+                neighbor = edge->getSourceNode();
+            }
+
+            if (neighbor) {
+                int neighborMass = neighbor->getMass();
+                if (neighborMass > maxMass) {
+                    maxMass = neighborMass;
+                    maxMassNeighbor = neighbor;
+                }
+            }
+        }
+
+        // 引力捕获并公转
+        if (maxMassNeighbor && maxMass > u->getMass()) {
+            QVector2D vec(u->pos() - maxMassNeighbor->pos());
+            double dist = vec.length();
+            if (dist > 1.0) {
+                QVector2D tangent(-vec.y(), vec.x());
+                tangent.normalize();
+
+                // 使用动态参数
+                m_displacements[u] += (tangent * m_orbitSpeed).toPointF();
+            }
+        }
     }
 
     // 4. 应用位移

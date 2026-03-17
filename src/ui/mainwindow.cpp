@@ -26,6 +26,47 @@
 #include <QRandomGenerator>
 #include <QContextMenuEvent>
 #include <QMenu>
+#include <QDockWidget>
+#include <QGroupBox>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QSlider>
+#include <QSpinBox>
+QWidget* createSliderRow(QWidget* parent, const QString& labelText, int min, int max, int val, const QString& suffix, std::function<void(int)> callback) {
+    QWidget* widget = new QWidget(parent);
+    QHBoxLayout* layout = new QHBoxLayout(widget);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    QLabel* label = new QLabel(labelText, widget);
+    label->setMinimumWidth(60);
+
+    QSlider* slider = new QSlider(Qt::Horizontal, widget);
+    slider->setRange(min, max);
+    slider->setValue(val);
+
+    // 数值显示框
+    QSpinBox* spinBox = new QSpinBox(widget);
+    spinBox->setRange(min, max);
+    spinBox->setValue(val);
+    spinBox->setSuffix(suffix);
+    spinBox->setButtonSymbols(QAbstractSpinBox::NoButtons); // 隐藏上下箭头，纯显示用
+    spinBox->setFixedWidth(60);
+    spinBox->setAlignment(Qt::AlignCenter);
+
+    // 双向绑定：滑块动 -> 数字变 -> 触发回调
+    QObject::connect(slider, &QSlider::valueChanged, spinBox, &QSpinBox::setValue);
+    QObject::connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), slider, &QSlider::setValue);
+
+    // 核心回调
+    QObject::connect(slider, &QSlider::valueChanged, callback);
+
+    layout->addWidget(label);
+    layout->addWidget(slider);
+    layout->addWidget(spinBox);
+
+    return widget;
+}
 
 MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -116,6 +157,7 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     connect(m_timer, &QTimer::timeout, m_layout, &ForceDirectedLayout::calculate);
     m_timer->start(30); // 30ms 刷新一次
 
+    createControlPanel();
    //建立连接
     setupConnections();
     setupToolbar();
@@ -158,6 +200,8 @@ void MainWindow::setupConnections() {
     connect(ui->actionAddRelation, &QAction::triggered, this, &MainWindow::onActionAddRelationshipTriggered);
     connect(m_graphEditor, &GraphEditor::relationshipAdded, this, &MainWindow::onRelationshipAdded);
     connect(m_graphEditor, &GraphEditor::relationshipDeleted, this, &MainWindow::onRelationshipDeleted);
+    connect(m_graphEditor, &GraphEditor::nodeUpdated, this, &MainWindow::onNodeUpdated);
+    connect(m_graphEditor, &GraphEditor::relationshipUpdated, this, &MainWindow::onRelationshipUpdated);
 }
 
 void MainWindow::onActionAddNodeTriggered() {
@@ -266,6 +310,85 @@ void MainWindow::onNodeDeleted(int nodeId) {
     updateStatusBar();
 }
 
+void MainWindow::onActionEditNodeTriggered(int nodeId) {
+    GraphNode oldNode = m_queryEngine->getNodeById(nodeId);
+    if (!oldNode.isValid()) return;
+
+    AddNodeDialog dialog(this);
+    dialog.setWindowTitle("修改节点");
+    dialog.setNodeData(oldNode);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        GraphNode newNode = dialog.getNodeData();
+        // 继承原有不可变属性
+        newNode.id = oldNode.id;
+        newNode.ontologyId = oldNode.ontologyId;
+        newNode.posX = oldNode.posX;
+        newNode.posY = oldNode.posY;
+        newNode.color = oldNode.color;
+        newNode.properties = oldNode.properties;
+
+        if (!m_graphEditor->updateNode(oldNode, newNode)) {
+            QMessageBox::warning(this, "错误", "更新节点失败，名称可能已存在！");
+        }
+    }
+}
+
+void MainWindow::onActionEditRelationshipTriggered(int edgeId) {
+    GraphEdge oldEdge = RelationshipRepository::getRelationshipById(edgeId);
+    if (oldEdge.id <= 0) return;
+
+    AddEdgeDialog dialog(this);
+    dialog.setWindowTitle("修改关系");
+    dialog.setNodes(QString("起点ID: %1").arg(oldEdge.sourceId), QString("终点ID: %2").arg(oldEdge.targetId));
+    dialog.setEdgeData(oldEdge);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        GraphEdge newEdge = dialog.getEdgeData();
+        newEdge.id = oldEdge.id;
+        newEdge.ontologyId = oldEdge.ontologyId;
+        newEdge.sourceId = oldEdge.sourceId;
+        newEdge.targetId = oldEdge.targetId;
+        newEdge.properties = oldEdge.properties;
+
+        if (!m_graphEditor->updateRelationship(oldEdge, newEdge)) {
+            QMessageBox::warning(this, "错误", "更新关系失败！");
+        }
+    }
+}
+
+void MainWindow::onNodeUpdated(const GraphNode& node) {
+    foreach (QGraphicsItem *item, m_scene->items()) {
+        if (item->type() == VisualNode::Type && item->data(0).toInt() == node.id) {
+            VisualNode* vNode = qgraphicsitem_cast<VisualNode*>(item);
+            vNode->updateData(node.name, node.nodeType);
+            break;
+        }
+    }
+    for (int i = 0; i < ui->propertyPanel->topLevelItemCount(); ++i) {
+        QTreeWidgetItem* item = ui->propertyPanel->topLevelItem(i);
+        if (item->text(0).toInt() == node.id) {
+            item->setText(1, node.name);
+            item->setText(2, node.nodeType);
+            break;
+        }
+    }
+    ui->statusbar->showMessage("节点更新成功", 2000);
+}
+
+void MainWindow::onRelationshipUpdated(const GraphEdge& edge) {
+    foreach (QGraphicsItem *item, m_scene->items()) {
+        if (item->type() == VisualEdge::Type) {
+            VisualEdge* vEdge = qgraphicsitem_cast<VisualEdge*>(item);
+            if (vEdge->getId() == edge.id) {
+                vEdge->updateData(edge.relationType);
+                break;
+            }
+        }
+    }
+    ui->statusbar->showMessage("关系更新成功", 2000);
+}
+
 void MainWindow::onGraphChanged() {
     qDebug() << "UI: Graph updated";
 }
@@ -310,7 +433,7 @@ void MainWindow::onActionAddRelationshipTriggered() {
 
     if (dialog.exec() == QDialog::Accepted) {
         GraphEdge edge = dialog.getEdgeData();
-        edge.ontologyId = 1;
+        edge.ontologyId = m_currentOntologyId;
         edge.sourceId = id1;
         edge.targetId = id2;
 
@@ -477,6 +600,18 @@ void MainWindow::setupToolbar() {
     actToggle->setChecked(false);
     ui->propertyPanel->setVisible(false);
     connect(actToggle, &QAction::triggered, this, &MainWindow::onTogglePropertyPanel);
+
+    QAction* actParams = toolbar->addAction("参数调节");
+    actParams->setToolTip("打开/关闭引力参数控制台");
+    actParams->setCheckable(true); // 让按钮变成可按下的状态
+
+    // 连接点击信号：控制面板的显示/隐藏
+    connect(actParams, &QAction::toggled, this, [this](bool checked){
+        m_controlDock->setVisible(checked);
+    });
+
+    // 双向绑定：如果用户点了面板右上角的 'X' 关闭，按钮状态也要弹起来
+    connect(m_controlDock, &QDockWidget::visibilityChanged, actParams, &QAction::setChecked);
 }
 
 void MainWindow::onTogglePropertyPanel() {
@@ -702,8 +837,18 @@ void MainWindow::onQueryPath() {
         }
 
         if (prevVNode && currVNode) {
-            // 连线
-            VisualEdge* edge = new VisualEdge(-1, prevVNode->getId(), currVNode->getId(), "path", prevVNode, currVNode);
+            QString actualRelationType = "未知";
+            QList<GraphEdge> relatedEdges = m_queryEngine->getRelatedRelationships(prevVNode->getId());
+
+            for (const auto& e : relatedEdges) {
+                if ((e.sourceId == prevVNode->getId() && e.targetId == currVNode->getId()) ||
+                    (e.sourceId == currVNode->getId() && e.targetId == prevVNode->getId())) {
+                    actualRelationType = e.relationType;
+                    break;
+                    }
+            }
+
+            VisualEdge* edge = new VisualEdge(-1, prevVNode->getId(), currVNode->getId(), actualRelationType, prevVNode, currVNode);
             m_scene->addItem(edge);
             prevVNode->addEdge(edge, true);
             currVNode->addEdge(edge, false);
@@ -737,3 +882,65 @@ void MainWindow::onSwitchOntology(int ontologyId, QString name) {
     onQueryFullGraph();
 }
 
+void MainWindow::createControlPanel() {
+    // 1. 创建停靠窗口
+    m_controlDock = new QDockWidget("参数控制台", this);
+    m_controlDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
+
+
+    m_controlDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+
+    // 2. 创建面板内的容器
+    QWidget *container = new QWidget();
+    // 设置深色背景或边框，增加质感 (可选 CSS)
+    container->setStyleSheet("QWidget { background-color: rgba(30, 30, 40, 200); border-radius: 5px; } QLabel { color: #ddd; font-weight: bold; }");
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(container);
+    mainLayout->setSpacing(12); // 稍微紧凑一点的间距
+    mainLayout->setContentsMargins(15, 20, 15, 20); // 增加内边距，不那么拥挤
+    // --- 斥力 (Repulsion) ---
+    mainLayout->addWidget(createSliderRow(container, "星体斥力:", 100, 3000,
+        static_cast<int>(m_layout->getRepulsion()), "",
+        [this](int val){ if(m_layout) m_layout->setRepulsion(val); }));
+
+    // --- 引力 (Stiffness) ---
+    mainLayout->addWidget(createSliderRow(container, "引力强度:", 1, 20,
+        static_cast<int>(m_layout->getStiffness() * 100), "",
+        [this](int val){ if(m_layout) m_layout->setStiffness(val / 100.0); }));
+
+    // --- 阻尼 (Damping) ---
+    mainLayout->addWidget(createSliderRow(container, "空间阻力:", 50, 99,
+        static_cast<int>(m_layout->getDamping() * 100), "%",
+        [this](int val){ if(m_layout) m_layout->setDamping(val / 100.0); }));
+
+    // --- 公转速度 (Orbit Speed) ---
+    mainLayout->addWidget(createSliderRow(container, "公转速度:", 0, 50,
+        static_cast<int>(m_layout->getOrbitSpeed() * 10), "",
+        [this](int val){ if(m_layout) m_layout->setOrbitSpeed(val / 10.0); }));
+
+    // 底部弹簧
+    mainLayout->addStretch();
+
+    // 3. 装载
+    m_controlDock->setWidget(container);
+    this->addDockWidget(Qt::RightDockWidgetArea, m_controlDock);
+
+    // 默认隐藏，由工具栏按钮控制显示
+    m_controlDock->setVisible(false);
+}
+
+void MainWindow::showNodeDetails(int nodeId) {
+
+    GraphNode node = m_queryEngine->getNodeById(nodeId);
+    if (!node.isValid()) return;
+
+    QString desc = node.description.trimmed().isEmpty() ? "（无描述信息）" : node.description;
+
+    QString info = QString("【节点 ID】: %1\n【节点名称】: %2\n【节点类型】: %3\n\n【详细描述】:\n%4")
+                       .arg(node.id)
+                       .arg(node.name)
+                       .arg(node.nodeType)
+                       .arg(desc);
+
+    QMessageBox::information(this, "节点详细信息", info);
+}

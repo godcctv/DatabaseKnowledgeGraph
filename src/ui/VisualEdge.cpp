@@ -25,6 +25,10 @@ void VisualEdge::updatePosition() {
     }
 }
 
+void VisualEdge::updateData(QString newRelationType) {
+    m_relationType = newRelationType;
+    update();
+}
 QPainterPath VisualEdge::shape() const {
     QPainterPath path;
     QLineF l = line(); // 获取当前的线段
@@ -138,6 +142,7 @@ void VisualEdge::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
 
     // 2. 创建菜单
     QMenu menu;
+    QAction *editAction = menu.addAction("修改关系");
     QAction *deleteAction = menu.addAction("删除关系");
 
     // 3. 弹出菜单
@@ -148,12 +153,13 @@ void VisualEdge::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
         if (scene()) {
             // 遍历所有视图，找到所属的主窗口
             foreach (QGraphicsView *view, scene()->views()) {
-                // 尝试把视图的窗口转换成 MainWindow
-                // 🔥 这里需要 mainwindow.h 的完整定义，否则报错 incomplete type
                 MainWindow *window = qobject_cast<MainWindow*>(view->window());
                 if (window) {
-                    // 调用 MainWindow 的 public 函数
-                    window->onActionDeleteRelationshipTriggered();
+                    if (selectedAction == deleteAction) {
+                        window->onActionDeleteRelationshipTriggered();
+                    } else if (selectedAction == editAction) {
+                        window->onActionEditRelationshipTriggered(m_id);
+                    }
                     break;
                 }
             }

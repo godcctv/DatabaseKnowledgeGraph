@@ -5,6 +5,7 @@
 #include <QGraphicsScene>
 #include <QEvent>
 #include <QPointF>
+#include <QDockWidget>
 #include "../business/GraphEditor.h" // 引入业务层
 
 
@@ -33,6 +34,9 @@ public:
 
     void onActionDeleteRelationshipTriggered();
     void onActionDeleteTriggered();
+    void showNodeDetails(int nodeId);
+    void onActionEditNodeTriggered(int nodeId);
+    void onActionEditRelationshipTriggered(int edgeId);
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
 
@@ -59,9 +63,12 @@ private slots:
 
     void onTogglePropertyPanel();
     void onSwitchOntology(int ontologyId, QString name);
+    void onNodeUpdated(const GraphNode& node);
+    void onRelationshipUpdated(const GraphEdge& edge);
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;
+    QDockWidget *m_controlDock;
     QGraphicsScene *m_scene;
     ForceDirectedLayout* m_layout;
     QTimer* m_timer;
@@ -76,5 +83,6 @@ private:
     void setupToolbar();
     void drawNode(int id, QString name, QString type, double x, double y);
     void drawEdge(const GraphEdge& edge);
+    void createControlPanel();
 };
 #endif // MAINWINDOW_H

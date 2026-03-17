@@ -17,6 +17,7 @@ public:
 
     // 设置显示的源节点和目标节点名称（只读，为了让用户确认）
     void setNodes(const QString& sourceName, const QString& targetName);
+    void setEdgeData(const GraphEdge& edge);
 
     // 获取用户输入的数据
     GraphEdge getEdgeData() const;

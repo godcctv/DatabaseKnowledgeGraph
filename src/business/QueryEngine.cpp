@@ -18,10 +18,10 @@ QList<GraphEdge> QueryEngine::getAllRelationships(int ontologyId) {
 GraphNode QueryEngine::getNodeById(int nodeId) {
     return NodeRepository::getNodeById(nodeId);
 }
-
 QList<GraphEdge> QueryEngine::getRelatedRelationships(int nodeId) {
-    // 获取本体1的所有关系，然后筛选 (实际项目中应由数据库直接筛选)
-    QList<GraphEdge> allEdges = RelationshipRepository::getAllRelationships(1);
+    GraphNode node = getNodeById(nodeId);
+    QList<GraphEdge> allEdges = RelationshipRepository::getAllRelationships(node.ontologyId);
+
     QList<GraphEdge> result;
     for (const auto& edge : allEdges) {
         if (edge.sourceId == nodeId || edge.targetId == nodeId) {
@@ -32,9 +32,6 @@ QList<GraphEdge> QueryEngine::getRelatedRelationships(int nodeId) {
 }
 
 QList<GraphNode> QueryEngine::queryByAttribute(const QString& attrName, const QString& attrValue) {
-    // 文档设计中属性是单独的表，但为了简化，我们这里暂时搜索 Node 的 name 或 description
-    // 或者解析 properties JSON 字段。
-    // 这里实现一个简化的：如果 attrName 是 "name"，就搜名字
 
     QList<GraphNode> allNodes = getAllNodes(1);
     QList<GraphNode> result;
@@ -58,8 +55,8 @@ QList<int> QueryEngine::findPath(int sourceId, int targetId) {
     QList<int> path;
     if (sourceId == targetId) return path;
 
-    // 1. 获取所有边构建图
-    QList<GraphEdge> edges = getAllRelationships(1);
+    GraphNode node = getNodeById(sourceId);
+    QList<GraphEdge> edges = getAllRelationships(node.ontologyId);
     QMap<int, QList<int>> adj;
     for (const auto& edge : edges) {
         adj[edge.sourceId].append(edge.targetId);

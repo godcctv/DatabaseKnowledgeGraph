@@ -4,6 +4,8 @@
 #include <QDialog>
 #include "../model/GraphNode.h"
 
+class QTextEdit;
+
 namespace Ui {
 class AddNodeDialog;
 }
@@ -15,6 +17,7 @@ public:
     explicit AddNodeDialog(QWidget *parent = nullptr);
     ~AddNodeDialog();
     GraphNode getNodeData() const;
+    void setNodeData(const GraphNode& node);
 
 private slots:
     void on_btnOk_clicked();
@@ -22,6 +25,9 @@ private slots:
 
 private:
     Ui::AddNodeDialog *ui;
+
+
+    QTextEdit *descEdit;
 };
 
 #endif
