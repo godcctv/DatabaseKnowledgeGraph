@@ -15,12 +15,13 @@ public:
 
 private slots:
     void onLoginClicked();
-
+    void onRegisterClicked();
 private:
     QLineEdit *m_usernameEdit;
     QLineEdit *m_passwordEdit;
     QPushButton *m_btnLogin;
     QPushButton *m_btnExit;
+    QPushButton *m_btnRegister;
     User m_currentUser;
 };
 

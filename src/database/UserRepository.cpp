@@ -26,3 +26,12 @@ User UserRepository::login(const QString& username, const QString& password) {
     
     return user;
 }
+
+bool UserRepository::registerUser(const QString& username, const QString& password) {
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    QSqlQuery query(db);
+    query.prepare("INSERT INTO users (username, password, is_admin) VALUES (:username, :password, FALSE)");
+    query.bindValue(":username", username);
+    query.bindValue(":password", password);
+    return query.exec();
+}

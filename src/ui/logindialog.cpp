@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <QGraphicsDropShadowEffect>
+#include <QFormLayout>
 
 LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("系统登录");
@@ -32,13 +33,16 @@ LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent) {
 
     // 按钮布局
     QHBoxLayout *btnLayout = new QHBoxLayout();
+    m_btnRegister = new QPushButton("注 册", this);
     m_btnLogin = new QPushButton("登 录", this);
     m_btnExit = new QPushButton("退 出", this);
+
+    m_btnRegister->setCursor(Qt::PointingHandCursor);
     m_btnLogin->setCursor(Qt::PointingHandCursor);
     m_btnExit->setCursor(Qt::PointingHandCursor);
     
     btnLayout->addWidget(m_btnExit);
-    btnLayout->addSpacing(20);
+    btnLayout->addWidget(m_btnRegister);
     btnLayout->addWidget(m_btnLogin);
 
     mainLayout->addWidget(titleLabel);
@@ -48,29 +52,25 @@ LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent) {
     mainLayout->addSpacing(10);
     mainLayout->addLayout(btnLayout);
 
-    // 注入科幻 QSS
     this->setStyleSheet(R"(
         QDialog { background-color: #0B0D17; border: 1px solid #2A2F45; }
         QLineEdit {
-            background-color: #08090F;
-            border: 1px solid #2A2F45;
-            border-radius: 6px;
-            padding: 8px 12px;
-            color: #00E5FF;
-            font-size: 14px;
+            background-color: #08090F; border: 1px solid #2A2F45;
+            border-radius: 6px; padding: 8px 12px; color: #00E5FF; font-size: 14px;
         }
         QLineEdit:focus { border: 1px solid #00E5FF; }
         QPushButton {
-            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e3a5a, stop:1 #101828);
-            color: #d0e6ff;
-            border: 1px solid #3a6ea5;
-            padding: 8px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
+            background-color: #161925; color: #A0AAB5; border: 1px solid #2A2F45;
+            padding: 8px; border-radius: 6px; font-size: 14px; font-weight: bold;
         }
-        QPushButton:hover { background-color: #3a6ea5; border-color: #00E5FF; color: #ffffff; }
-        QPushButton:pressed { background-color: #0f172a; }
+        QPushButton:hover { background-color: #2A2F45; color: #ffffff; }
+        QPushButton:pressed { background-color: #0B0D17; }
+        /* 登录按钮高亮 */
+        QPushButton#LoginBtn {
+            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e3a5a, stop:1 #101828);
+            color: #d0e6ff; border: 1px solid #3a6ea5;
+        }
+        QPushButton#LoginBtn:hover { background-color: #3a6ea5; border-color: #00E5FF; color: #ffffff; }
     )");
 
     // 默认回车触发登录
@@ -97,4 +97,43 @@ void LoginDialog::onLoginClicked() {
     } else {
         QMessageBox::critical(this, "登录失败", "账号或密码错误！");
     }
+}
+
+void LoginDialog::onRegisterClicked() {
+    QDialog regDialog(this);
+    regDialog.setWindowTitle("用户注册");
+    regDialog.setStyleSheet(this->styleSheet());
+
+    QFormLayout *form = new QFormLayout(&regDialog);
+    QLineEdit *nameEdit = new QLineEdit(&regDialog);
+    nameEdit->setPlaceholderText("设置您的账号");
+    QLineEdit *pwdEdit = new QLineEdit(&regDialog);
+    pwdEdit->setPlaceholderText("设置您的密码");
+    pwdEdit->setEchoMode(QLineEdit::Password);
+
+    form->addRow("账号:", nameEdit);
+    form->addRow("密码:", pwdEdit);
+
+    QPushButton *btnOk = new QPushButton("确认注册", &regDialog);
+    btnOk->setObjectName("LoginBtn");
+    form->addRow("", btnOk);
+
+    connect(btnOk, &QPushButton::clicked, [&]() {
+        QString name = nameEdit->text().trimmed();
+        QString pwd = pwdEdit->text().trimmed();
+        if (name.isEmpty() || pwd.isEmpty()) {
+            QMessageBox::warning(&regDialog, "错误", "账号和密码不能为空！");
+            return;
+        }
+        if (UserRepository::registerUser(name, pwd)) {
+            QMessageBox::information(&regDialog, "成功", "注册成功！请使用新账号登录。");
+            m_usernameEdit->setText(name);
+            m_passwordEdit->clear();
+            regDialog.accept();
+        } else {
+            QMessageBox::warning(&regDialog, "错误", "注册失败，该账号可能已存在！");
+        }
+    });
+
+    regDialog.exec();
 }
