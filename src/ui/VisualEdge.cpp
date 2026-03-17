@@ -149,19 +149,16 @@ void VisualEdge::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
     QAction *selectedAction = menu.exec(event->screenPos());
 
     // 4. 处理点击
-    if (selectedAction == deleteAction) {
-        if (scene()) {
-            // 遍历所有视图，找到所属的主窗口
-            foreach (QGraphicsView *view, scene()->views()) {
-                MainWindow *window = qobject_cast<MainWindow*>(view->window());
-                if (window) {
-                    if (selectedAction == deleteAction) {
-                        window->onActionDeleteRelationshipTriggered();
-                    } else if (selectedAction == editAction) {
-                        window->onActionEditRelationshipTriggered(m_id);
-                    }
-                    break;
+    if (selectedAction && scene()) {
+        foreach (QGraphicsView *view, scene()->views()) {
+            MainWindow *window = qobject_cast<MainWindow*>(view->window());
+            if (window) {
+                if (selectedAction == deleteAction) {
+                    window->onActionDeleteRelationshipTriggered();
+                } else if (selectedAction == editAction) {
+                    window->onActionEditRelationshipTriggered(m_id);
                 }
+                break;
             }
         }
     }

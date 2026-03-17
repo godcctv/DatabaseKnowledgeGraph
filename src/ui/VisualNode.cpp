@@ -89,19 +89,16 @@ void VisualNode::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
     QAction *deleteAction = menu.addAction("删除节点");
     QAction *selectedAction = menu.exec(event->screenPos());
 
-    // 3. 执行删除指令
-    if (selectedAction == deleteAction) {
-        if (scene()) {
-            foreach (QGraphicsView *view, scene()->views()) {
-                MainWindow *window = qobject_cast<MainWindow*>(view->window());
-                if (window) {
-                    if (selectedAction == deleteAction) {
-                        window->onActionDeleteTriggered();
-                    } else if (selectedAction == editAction) {
-                        window->onActionEditNodeTriggered(m_id);
-                    }
-                    break;
+    if (selectedAction && scene()) { // 只要用户选了选项，并且在场景中
+        foreach (QGraphicsView *view, scene()->views()) {
+            MainWindow *window = qobject_cast<MainWindow*>(view->window());
+            if (window) {
+                if (selectedAction == deleteAction) {
+                    window->onActionDeleteTriggered();
+                } else if (selectedAction == editAction) {
+                    window->onActionEditNodeTriggered(m_id);
                 }
+                break;
             }
         }
     }
