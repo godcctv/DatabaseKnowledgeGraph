@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
     }
     User currentUser = loginDialog.getCurrentUser();
 
-    // 2. 显示项目选择对话框 (这是新的启动流程)
+    // 2. 显示项目选择对话框
     ProjectSelectionDialog selectDialog;
     if (selectDialog.exec() == QDialog::Accepted) {
         // 用户选好项目了，启动主界面

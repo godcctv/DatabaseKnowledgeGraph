@@ -23,11 +23,11 @@ LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent) {
     
     // 账号输入框
     m_usernameEdit = new QLineEdit(this);
-    m_usernameEdit->setPlaceholderText("请输入账号 (admin/user)");
+    m_usernameEdit->setPlaceholderText("请输入账号");
     
     // 密码输入框
     m_passwordEdit = new QLineEdit(this);
-    m_passwordEdit->setPlaceholderText("请输入密码 (123456)");
+    m_passwordEdit->setPlaceholderText("请输入密码");
     m_passwordEdit->setEchoMode(QLineEdit::Password); // 密码模式，显示星号
 
     // 按钮布局
