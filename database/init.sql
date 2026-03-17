@@ -63,3 +63,12 @@ CREATE TABLE attribute (
                                (node_id IS NULL AND relation_id IS NOT NULL)
                                )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 5. 权限表
+CREATE TABLE IF NOT EXISTS users (
+                                     user_id INT PRIMARY KEY AUTO_INCREMENT,
+                                     username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

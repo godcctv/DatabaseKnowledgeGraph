@@ -13,6 +13,8 @@ set(SOURCES
         database/RelationshipRepository.cpp
         database/OntologyRepository.cpp
         database/AttributeRepository.cpp
+        database/UserRepository.cpp
+
 
         # UI 界面层
         ui/mainwindow.cpp
@@ -21,6 +23,7 @@ set(SOURCES
         ui/VisualNode.cpp
         ui/VisualEdge.cpp
         ui/ProjectSelectionDialog.cpp
+        ui/logindialog.cpp
 )
 
 set(HEADERS
@@ -35,6 +38,7 @@ set(HEADERS
         model/GraphEdge.h
         model/Ontology.h
         model/Attribute.h
+        model/User.h
 
         # 数据库头文件
         database/DatabaseConnection.h
@@ -42,6 +46,7 @@ set(HEADERS
         database/RelationshipRepository.h
         database/OntologyRepository.h
         database/AttributeRepository.h
+        database/UserRepository.h
 
         # UI 头文件
         ui/mainwindow.h
@@ -51,6 +56,7 @@ set(HEADERS
         ui/VisualEdge.h
         ui/QueryDialog.h
         ui/ProjectSelectionDialog.h
+        ui/logindialog.h
 )
 
 set(FORMS
@@ -65,6 +71,11 @@ set(FORMS
         ui/QueryDialog.h
         ui/ProjectSelectionDialog.h
         ui/ProjectSelectionDialog.cpp
+        model/User.h
+        database/UserRepository.h
+        database/UserRepository.cpp
+        ui/logindialog.h
+        ui/logindialog.cpp
 
 )
 

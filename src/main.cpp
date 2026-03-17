@@ -9,7 +9,8 @@
 #include "database/OntologyRepository.h"
 #include "ui/mainwindow.h"
 #include "ui/ProjectSelectionDialog.h"
-
+#include "ui/logindialog.h"
+#include "model/User.h"
 
 QString loadStyleSheet() {
     QStringList paths = {
@@ -69,6 +70,12 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     OntologyRepository::initDatabase();
+    LoginDialog loginDialog;
+    if (loginDialog.exec() != QDialog::Accepted) {
+        return 0;
+    }
+    User currentUser = loginDialog.getCurrentUser();
+
     // 2. 显示项目选择对话框 (这是新的启动流程)
     ProjectSelectionDialog selectDialog;
     if (selectDialog.exec() == QDialog::Accepted) {
