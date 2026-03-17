@@ -11,6 +11,7 @@
 #include "ui/ProjectSelectionDialog.h"
 #include "ui/logindialog.h"
 #include "model/User.h"
+#include "ui/usermanagementdialog.h"
 
 QString loadStyleSheet() {
     QStringList paths = {
@@ -72,24 +73,26 @@ int main(int argc, char *argv[]) {
     OntologyRepository::initDatabase();
     LoginDialog loginDialog;
     if (loginDialog.exec() != QDialog::Accepted) {
-        return 0;
+        return 0; // 用户未登录，退出程序
     }
+
     User currentUser = loginDialog.getCurrentUser();
+    if (currentUser.isAdmin) {
+        // 【路线 A：管理员后台】
+        UserManagementDialog adminPanel;
+        return adminPanel.exec();
+    } else {
+        // 【路线 B：普通用户工作台】
+        ProjectSelectionDialog selectDialog;
+        if (selectDialog.exec() == QDialog::Accepted) {
+            int ontoId = selectDialog.getSelectedOntologyId();
+            QString ontoName = selectDialog.getSelectedOntologyName();
 
-    // 2. 显示项目选择对话框
-    ProjectSelectionDialog selectDialog;
-    if (selectDialog.exec() == QDialog::Accepted) {
-        // 用户选好项目了，启动主界面
-        int ontoId = selectDialog.getSelectedOntologyId();
-        QString ontoName = selectDialog.getSelectedOntologyName();
-
-        // 3. 启动主窗口，传入选中的项目ID
-        MainWindow w(ontoId, ontoName);
-        w.show();
-
-        return a.exec();
+            MainWindow w(ontoId, ontoName);
+            w.show();
+            return a.exec();
+        }
     }
 
-    // 如果用户取消或关闭了选择框，程序直接退出
     return 0;
 }

@@ -24,6 +24,7 @@ set(SOURCES
         ui/VisualEdge.cpp
         ui/ProjectSelectionDialog.cpp
         ui/logindialog.cpp
+        ui/usermanagementdialog.cpp
 )
 
 set(HEADERS
@@ -57,6 +58,7 @@ set(HEADERS
         ui/QueryDialog.h
         ui/ProjectSelectionDialog.h
         ui/logindialog.h
+        ui/usermanagementdialog.h
 )
 
 set(FORMS
@@ -76,6 +78,8 @@ set(FORMS
         database/UserRepository.cpp
         ui/logindialog.h
         ui/logindialog.cpp
+        ui/usermanagementdialog.h
+        ui/usermanagementdialog.cpp
 
 )
 

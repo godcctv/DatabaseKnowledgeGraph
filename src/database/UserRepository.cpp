@@ -35,3 +35,49 @@ bool UserRepository::registerUser(const QString& username, const QString& passwo
     query.bindValue(":password", password);
     return query.exec();
 }
+
+QList<User> UserRepository::getAllUsers() {
+    QList<User> users;
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    if (!db.isOpen()) return users;
+
+    QSqlQuery query(db);
+    if (query.exec("SELECT * FROM users ORDER BY user_id ASC")) {
+        while (query.next()) {
+            User u;
+            u.id = query.value("user_id").toInt();
+            u.username = query.value("username").toString();
+            u.password = "******";
+            u.isAdmin = query.value("is_admin").toBool();
+            users.append(u);
+        }
+    }
+    return users;
+}
+
+bool UserRepository::addUser(const QString& username, const QString& password, bool isAdmin) {
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    QSqlQuery query(db);
+    query.prepare("INSERT INTO users (username, password, is_admin) VALUES (:username, :password, :is_admin)");
+    query.bindValue(":username", username);
+    query.bindValue(":password", password);
+    query.bindValue(":is_admin", isAdmin);
+    return query.exec();
+}
+
+bool UserRepository::deleteUser(int id) {
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    QSqlQuery query(db);
+    query.prepare("DELETE FROM users WHERE user_id = :id");
+    query.bindValue(":id", id);
+    return query.exec();
+}
+
+bool UserRepository::resetPassword(int id, const QString& newPassword) {
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    QSqlQuery query(db);
+    query.prepare("UPDATE users SET password = :password WHERE user_id = :id");
+    query.bindValue(":password", newPassword);
+    query.bindValue(":id", id);
+    return query.exec();
+}
