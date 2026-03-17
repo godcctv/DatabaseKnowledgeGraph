@@ -85,6 +85,7 @@ void VisualNode::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
 
     // 2. 创建并显示菜单
     QMenu menu;
+    QAction *editAction = menu.addAction("修改节点");
     QAction *deleteAction = menu.addAction("删除节点");
     QAction *selectedAction = menu.exec(event->screenPos());
 
@@ -94,8 +95,11 @@ void VisualNode::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
             foreach (QGraphicsView *view, scene()->views()) {
                 MainWindow *window = qobject_cast<MainWindow*>(view->window());
                 if (window) {
-                    // 调用主窗口的删除操作
-                    window->onActionDeleteTriggered();
+                    if (selectedAction == deleteAction) {
+                        window->onActionDeleteTriggered();
+                    } else if (selectedAction == editAction) {
+                        window->onActionEditNodeTriggered(m_id);
+                    }
                     break;
                 }
             }
@@ -226,4 +230,20 @@ void VisualNode::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) {
         }
     }
     QGraphicsEllipseItem::mouseDoubleClickEvent(event);
+}
+
+void VisualNode::updateData(QString newName, QString newType) {
+    m_name = newName;
+    m_nodeType = newType;
+    // 遍历子项找到文字并更新
+    for (QGraphicsItem* item : childItems()) {
+        if (QGraphicsTextItem* textItem = dynamic_cast<QGraphicsTextItem*>(item)) {
+            textItem->setPlainText(newName);
+            // 重新居中对齐文字
+            QRectF textRect = textItem->boundingRect();
+            textItem->setPos(-textRect.width() / 2, 30);
+            break;
+        }
+    }
+    update(); // 重绘
 }

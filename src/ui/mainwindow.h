@@ -35,6 +35,8 @@ public:
     void onActionDeleteRelationshipTriggered();
     void onActionDeleteTriggered();
     void showNodeDetails(int nodeId);
+    void onActionEditNodeTriggered(int nodeId);
+    void onActionEditRelationshipTriggered(int edgeId);
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
 
@@ -61,6 +63,8 @@ private slots:
 
     void onTogglePropertyPanel();
     void onSwitchOntology(int ontologyId, QString name);
+    void onNodeUpdated(const GraphNode& node);
+    void onRelationshipUpdated(const GraphEdge& edge);
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;

@@ -25,7 +25,7 @@ public:
     // --- 关系操作业务接口 ---
     bool addRelationship(GraphEdge& edge);
     bool deleteRelationship(int edgeId);
-
+    bool updateRelationship(const GraphEdge& oldEdge, const GraphEdge& newEdge);
     // --- 撤销/重做核心接口 ---
     void undo();
     void redo();
@@ -35,12 +35,13 @@ public:
     bool canRedo() const { return !m_redoStack.isEmpty(); }
 
     signals:
-        // 信号：当业务层完成操作时，通知 UI 层（可视化视图和属性面板）进行同步
+        // 信号：当业务层完成操作时，通知 UI 层进行同步
     void nodeAdded(const GraphNode& node);
     void nodeDeleted(int nodeId);
     void relationshipAdded(const GraphEdge& edge);
     void relationshipDeleted(int edgeId);
-
+    void nodeUpdated(const GraphNode& node);
+    void relationshipUpdated(const GraphEdge& edge);
     // 通用信号：表示图数据发生了任何变动
     void graphChanged();
 

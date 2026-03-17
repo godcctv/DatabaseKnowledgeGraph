@@ -200,6 +200,8 @@ void MainWindow::setupConnections() {
     connect(ui->actionAddRelation, &QAction::triggered, this, &MainWindow::onActionAddRelationshipTriggered);
     connect(m_graphEditor, &GraphEditor::relationshipAdded, this, &MainWindow::onRelationshipAdded);
     connect(m_graphEditor, &GraphEditor::relationshipDeleted, this, &MainWindow::onRelationshipDeleted);
+    connect(m_graphEditor, &GraphEditor::nodeUpdated, this, &MainWindow::onNodeUpdated);
+    connect(m_graphEditor, &GraphEditor::relationshipUpdated, this, &MainWindow::onRelationshipUpdated);
 }
 
 void MainWindow::onActionAddNodeTriggered() {
@@ -306,6 +308,85 @@ void MainWindow::onNodeDeleted(int nodeId) {
     }
 
     updateStatusBar();
+}
+
+void MainWindow::onActionEditNodeTriggered(int nodeId) {
+    GraphNode oldNode = m_queryEngine->getNodeById(nodeId);
+    if (!oldNode.isValid()) return;
+
+    AddNodeDialog dialog(this);
+    dialog.setWindowTitle("修改节点");
+    dialog.setNodeData(oldNode);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        GraphNode newNode = dialog.getNodeData();
+        // 继承原有不可变属性
+        newNode.id = oldNode.id;
+        newNode.ontologyId = oldNode.ontologyId;
+        newNode.posX = oldNode.posX;
+        newNode.posY = oldNode.posY;
+        newNode.color = oldNode.color;
+        newNode.properties = oldNode.properties;
+
+        if (!m_graphEditor->updateNode(oldNode, newNode)) {
+            QMessageBox::warning(this, "错误", "更新节点失败，名称可能已存在！");
+        }
+    }
+}
+
+void MainWindow::onActionEditRelationshipTriggered(int edgeId) {
+    GraphEdge oldEdge = RelationshipRepository::getRelationshipById(edgeId);
+    if (oldEdge.id <= 0) return;
+
+    AddEdgeDialog dialog(this);
+    dialog.setWindowTitle("修改关系");
+    dialog.setNodes(QString("起点ID: %1").arg(oldEdge.sourceId), QString("终点ID: %2").arg(oldEdge.targetId));
+    dialog.setEdgeData(oldEdge);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        GraphEdge newEdge = dialog.getEdgeData();
+        newEdge.id = oldEdge.id;
+        newEdge.ontologyId = oldEdge.ontologyId;
+        newEdge.sourceId = oldEdge.sourceId;
+        newEdge.targetId = oldEdge.targetId;
+        newEdge.properties = oldEdge.properties;
+
+        if (!m_graphEditor->updateRelationship(oldEdge, newEdge)) {
+            QMessageBox::warning(this, "错误", "更新关系失败！");
+        }
+    }
+}
+
+void MainWindow::onNodeUpdated(const GraphNode& node) {
+    foreach (QGraphicsItem *item, m_scene->items()) {
+        if (item->type() == VisualNode::Type && item->data(0).toInt() == node.id) {
+            VisualNode* vNode = qgraphicsitem_cast<VisualNode*>(item);
+            vNode->updateData(node.name, node.nodeType);
+            break;
+        }
+    }
+    for (int i = 0; i < ui->propertyPanel->topLevelItemCount(); ++i) {
+        QTreeWidgetItem* item = ui->propertyPanel->topLevelItem(i);
+        if (item->text(0).toInt() == node.id) {
+            item->setText(1, node.name);
+            item->setText(2, node.nodeType);
+            break;
+        }
+    }
+    ui->statusbar->showMessage("节点更新成功", 2000);
+}
+
+void MainWindow::onRelationshipUpdated(const GraphEdge& edge) {
+    foreach (QGraphicsItem *item, m_scene->items()) {
+        if (item->type() == VisualEdge::Type) {
+            VisualEdge* vEdge = qgraphicsitem_cast<VisualEdge*>(item);
+            if (vEdge->getId() == edge.id) {
+                vEdge->updateData(edge.relationType);
+                break;
+            }
+        }
+    }
+    ui->statusbar->showMessage("关系更新成功", 2000);
 }
 
 void MainWindow::onGraphChanged() {
@@ -766,7 +847,7 @@ void MainWindow::onQueryPath() {
                     break;
                     }
             }
-            
+
             VisualEdge* edge = new VisualEdge(-1, prevVNode->getId(), currVNode->getId(), actualRelationType, prevVNode, currVNode);
             m_scene->addItem(edge);
             prevVNode->addEdge(edge, true);

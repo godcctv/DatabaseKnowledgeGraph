@@ -3,6 +3,8 @@
 #include <QRandomGenerator>
 #include <QMessageBox>
 #include <QDateTime>
+#include <QTextEdit>
+#include <QLabel>
 
 AddNodeDialog::AddNodeDialog(QWidget *parent) :
     QDialog(parent),
@@ -14,8 +16,16 @@ AddNodeDialog::AddNodeDialog(QWidget *parent) :
     ui->typeCombo->addItem("概念");
     ui->typeCombo->addItem("实体");
     ui->typeCombo->addItem("方法");
+    QLabel* descLabel = new QLabel("描述", this);
+    descLabel->setGeometry(30, 140, 31, 17);
 
-    // 连接信号槽（如果UI里没选自动连接）
+    descEdit = new QTextEdit(this);
+    descEdit->setGeometry(80, 140, 140, 60);
+
+    this->resize(250, 260);
+    ui->btnOk->move(20, 220);
+    ui->btnCancel->move(130, 220);
+    // 连接信号槽
     connect(ui->btnOk, &QPushButton::clicked, this, &AddNodeDialog::on_btnOk_clicked);
     connect(ui->btnCancel, &QPushButton::clicked, this, &AddNodeDialog::on_btnCancel_clicked);
 }
@@ -28,7 +38,7 @@ GraphNode AddNodeDialog::getNodeData() const {
     GraphNode node;
     node.name = ui->nameEdit->text().trimmed();
     node.nodeType = ui->typeCombo->currentText();
-
+    node.description = descEdit->toPlainText().trimmed();
     node.posX = QRandomGenerator::global()->bounded(50, 450);
     node.posY = QRandomGenerator::global()->bounded(50, 350);
 
@@ -46,4 +56,10 @@ void AddNodeDialog::on_btnOk_clicked() {
 
 void AddNodeDialog::on_btnCancel_clicked() {
     reject(); // 关闭对话框并返回 QDialog::Rejected
+}
+
+void AddNodeDialog::setNodeData(const GraphNode& node) {
+    ui->nameEdit->setText(node.name);
+    ui->typeCombo->setCurrentText(node.nodeType);
+    descEdit->setPlainText(node.description);
 }

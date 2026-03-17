@@ -44,3 +44,7 @@ void AddEdgeDialog::on_btnOk_clicked() {
 void AddEdgeDialog::on_btnCancel_clicked() {
     reject();
 }
+
+void AddEdgeDialog::setEdgeData(const GraphEdge& edge) {
+    ui->typeCombo->setCurrentText(edge.relationType);
+}

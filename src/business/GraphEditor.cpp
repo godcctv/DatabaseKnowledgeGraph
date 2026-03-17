@@ -72,6 +72,7 @@ bool GraphEditor::updateNode(const GraphNode& oldNode, const GraphNode& newNode)
         m_undoStack.push(cmd);
         clearRedoStack();
 
+        emit nodeUpdated(newNode);
         emit graphChanged();
         qInfo() << "GraphEditor: 节点更新成功，ID =" << newNode.id;
         return true;
@@ -140,7 +141,24 @@ bool GraphEditor::deleteRelationship(int edgeId) {
     return false;
 }
 
-// --- 撤销/重做核心 ---
+bool GraphEditor::updateRelationship(const GraphEdge& oldEdge, const GraphEdge& newEdge) {
+    if (oldEdge.id <= 0 || newEdge.id <= 0) return false;
+
+    if (RelationshipRepository::updateRelationship(newEdge)) {
+        auto cmd = std::make_shared<UpdateEdgeCommand>(oldEdge, newEdge);
+        m_undoStack.push(cmd);
+        clearRedoStack();
+        emit relationshipUpdated(newEdge);
+        emit graphChanged();
+        qInfo() << "GraphEditor: 关系更新成功，ID =" << newEdge.id;
+        return true;
+    }
+    return false;
+}
+
+
+
+// 撤销/重做
 
 void GraphEditor::undo() {
     if (m_undoStack.isEmpty()) return;
