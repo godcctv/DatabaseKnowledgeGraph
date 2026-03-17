@@ -33,6 +33,11 @@
 #include <QLabel>
 #include <QSlider>
 #include <QSpinBox>
+#include <QDialog>
+#include <QFrame>
+#include <QTextEdit>
+#include <QPushButton>
+
 QWidget* createSliderRow(QWidget* parent, const QString& labelText, int min, int max, int val, const QString& suffix, std::function<void(int)> callback) {
     QWidget* widget = new QWidget(parent);
     QHBoxLayout* layout = new QHBoxLayout(widget);
@@ -230,7 +235,7 @@ void MainWindow::onActionAddNodeTriggered() {
 }
 
 void MainWindow::onActionDeleteTriggered() {
-    // 1. 优先尝试从场景(画板)中删除选中的元素
+    // 1. 优先尝试从场中删除选中的元素
     QList<QGraphicsItem*> selectedSceneItems = m_scene->selectedItems();
     if (!selectedSceneItems.isEmpty()) {
         if (QMessageBox::question(this, "确认删除", "确定要删除选中的实体及其关联吗？") == QMessageBox::Yes) {
@@ -930,17 +935,88 @@ void MainWindow::createControlPanel() {
 }
 
 void MainWindow::showNodeDetails(int nodeId) {
-
     GraphNode node = m_queryEngine->getNodeById(nodeId);
     if (!node.isValid()) return;
 
     QString desc = node.description.trimmed().isEmpty() ? "（无描述信息）" : node.description;
 
-    QString info = QString("【节点 ID】: %1\n【节点名称】: %2\n【节点类型】: %3\n\n【详细描述】:\n%4")
-                       .arg(node.id)
-                       .arg(node.name)
-                       .arg(node.nodeType)
-                       .arg(desc);
+    //创建自定义弹窗
+    QDialog dialog(this);
+    dialog.setWindowTitle("节点详细信息");
+    dialog.resize(320, 280); // 设定和添加节点差不多的尺寸
 
-    QMessageBox::information(this, "节点详细信息", info);
+    //设置主布局
+    QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
+    mainLayout->setContentsMargins(25, 25, 25, 20);
+    mainLayout->setSpacing(15);
+
+    //顶部信息展示区
+    QFrame* infoFrame = new QFrame(&dialog);
+    infoFrame->setObjectName("InfoFrame");
+    QVBoxLayout* formLayout = new QVBoxLayout(infoFrame);
+    formLayout->setSpacing(12);
+
+    QLabel* idLabel = new QLabel(QString("<b>节点 ID:</b>  %1").arg(node.id), infoFrame);
+    QLabel* nameLabel = new QLabel(QString("<b>节点名称:</b>  %1").arg(node.name), infoFrame);
+    QLabel* typeLabel = new QLabel(QString("<b>节点类型:</b>  %1").arg(node.nodeType), infoFrame);
+
+    formLayout->addWidget(idLabel);
+    formLayout->addWidget(nameLabel);
+    formLayout->addWidget(typeLabel);
+
+    //  描述信息展示区
+    QLabel* descTitle = new QLabel("<b>详细描述:</b>", &dialog);
+    QTextEdit* descEdit = new QTextEdit(&dialog);
+    descEdit->setPlainText(desc);
+    descEdit->setReadOnly(true); // 设为只读
+    descEdit->setMaximumHeight(80);
+
+    // 底部按钮区
+    QHBoxLayout* btnLayout = new QHBoxLayout();
+    btnLayout->addStretch();
+    QPushButton* okBtn = new QPushButton("确定", &dialog);
+    okBtn->setMinimumWidth(80);
+    btnLayout->addWidget(okBtn);
+
+    // 点击确定关闭窗口
+    connect(okBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    // 组装所有控件
+    mainLayout->addWidget(infoFrame);
+    mainLayout->addWidget(descTitle);
+    mainLayout->addWidget(descEdit);
+    mainLayout->addLayout(btnLayout);
+
+    dialog.setStyleSheet(R"(
+        QDialog { background-color: #161925; border: 1px solid #2A2F45; }
+        QLabel { color: #A0AAB5; font-size: 13px; }
+        QFrame#InfoFrame {
+            background-color: rgba(0, 229, 255, 0.05); /* 微弱的青色背景 */
+            border: 1px dashed #3a6ea5;
+            border-radius: 6px;
+            padding: 5px;
+        }
+        QFrame#InfoFrame QLabel { color: #E0E6ED; } /* 信息区的文字更亮一点 */
+        QTextEdit {
+            background-color: #08090F;
+            border: 1px solid #2A2F45;
+            border-radius: 6px;
+            padding: 6px;
+            color: #00E5FF; /* 描述文字呈现青色 */
+            font-size: 13px;
+        }
+        QPushButton {
+            background-color: #1e3a5a;
+            color: #d0e6ff;
+            border: 1px solid #3a6ea5;
+            padding: 6px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #3a6ea5; border-color: #00E5FF; color: #ffffff; }
+        QPushButton:pressed { background-color: #0B0D17; }
+    )");
+
+    okBtn->setDefault(true);
+    dialog.exec(); // 阻塞式弹出窗口
 }

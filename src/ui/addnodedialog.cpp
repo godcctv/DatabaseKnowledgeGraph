@@ -5,6 +5,10 @@
 #include <QDateTime>
 #include <QTextEdit>
 #include <QLabel>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QFormLayout>
+
 
 AddNodeDialog::AddNodeDialog(QWidget *parent) :
     QDialog(parent),
@@ -12,19 +16,65 @@ AddNodeDialog::AddNodeDialog(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ui->label->hide();
+    ui->label_2->hide();
+
     // 初始化下拉框类型
     ui->typeCombo->addItem("概念");
     ui->typeCombo->addItem("实体");
     ui->typeCombo->addItem("方法");
-    QLabel* descLabel = new QLabel("描述", this);
-    descLabel->setGeometry(30, 140, 31, 17);
 
     descEdit = new QTextEdit(this);
-    descEdit->setGeometry(80, 140, 140, 60);
+    descEdit->setMaximumHeight(80);
 
-    this->resize(250, 260);
-    ui->btnOk->move(20, 220);
-    ui->btnCancel->move(130, 220);
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(25, 25, 25, 20);
+    mainLayout->setSpacing(15);
+
+    QFormLayout *formLayout = new QFormLayout();
+    formLayout->setSpacing(15);
+    formLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    formLayout->addRow("名称 :", ui->nameEdit);
+    formLayout->addRow("类型 :", ui->typeCombo);
+    formLayout->addRow("描述 :", descEdit);
+
+    QHBoxLayout *btnLayout = new QHBoxLayout();
+    btnLayout->addStretch();
+    btnLayout->addWidget(ui->btnOk);
+    btnLayout->addWidget(ui->btnCancel);
+
+    mainLayout->addLayout(formLayout);
+    mainLayout->addLayout(btnLayout);
+
+    this->resize(320, 260);
+
+    this->setStyleSheet(R"(
+        QDialog { background-color: #161925; border: 1px solid #2A2F45; }
+        QLabel { color: #A0AAB5; font-weight: bold; font-size: 13px; }
+        QLineEdit, QComboBox, QTextEdit {
+            background-color: #08090F;
+            border: 1px solid #2A2F45;
+            border-radius: 6px;
+            padding: 6px;
+            color: #00E5FF;
+            font-size: 13px;
+        }
+        QLineEdit:focus, QComboBox:focus, QTextEdit:focus { border: 1px solid #00E5FF; }
+        QComboBox::drop-down { border: none; }
+        QPushButton {
+            background-color: #1e3a5a;
+            color: #d0e6ff;
+            border: 1px solid #3a6ea5;
+            padding: 6px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        QPushButton:hover { background-color: #3a6ea5; border-color: #00E5FF; color: #ffffff; }
+        QPushButton:pressed { background-color: #0B0D17; }
+    )");
+
+    ui->btnOk->setDefault(true);
+
     // 连接信号槽
     connect(ui->btnOk, &QPushButton::clicked, this, &AddNodeDialog::on_btnOk_clicked);
     connect(ui->btnCancel, &QPushButton::clicked, this, &AddNodeDialog::on_btnCancel_clicked);
