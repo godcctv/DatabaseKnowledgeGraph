@@ -108,92 +108,33 @@ void VisualNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
     Q_UNUSED(widget);
     painter->setRenderHint(QPainter::Antialiasing);
 
-    qint64 currentMs = QDateTime::currentMSecsSinceEpoch();
+    // 动态调整大小
+    qreal coreRadius = 20 + getEdgeCount() * 1.5;
+    if (coreRadius > 45) coreRadius = 45;
 
-    // 根据直接关联的节点数量，动态计算基础体积
-    qreal coreRadius = 14 + getEdgeCount() * 2.0;
-    if (coreRadius > 40) coreRadius = 40;
+    // Nord 极客风的极光/冰雪调色板 (低饱和度)
+    QStringList nordColors = {
+        "#BF616A", // 红
+        "#D08770", // 橙
+        "#EBCB8B", // 黄
+        "#A3BE8C", // 绿
+        "#B48EAD", // 紫
+        "#88C0D0", // 冰蓝
+        "#81A1C1"  // 灰蓝
+    };
+    QColor baseColor(nordColors[m_id % nordColors.size()]);
 
-    int seed = m_id * 137;
-    int styleType = seed % 3;    // 0: 恒星, 1: 行星, 2: 黑洞
-    int hue = (seed * 17) % 360;
+    // ========== 1. 扁平化节点本体 ==========
+    painter->setBrush(baseColor);
+    painter->setPen(QPen(QColor("#ECEFF4"), 2)); // 白灰色实线描边
+    painter->drawEllipse(QPointF(0, 0), coreRadius, coreRadius);
 
-    // ========== 选中状态光圈 ==========
+    // ========== 2. 选中状态指示器 ==========
     if (isSelected()) {
-        painter->save();
-        painter->rotate(currentMs / 40.0);
-        painter->setPen(QPen(QColor(0, 255, 255, 180), 1.5, Qt::DashLine));
         painter->setBrush(Qt::NoBrush);
-        painter->drawEllipse(QPointF(0, 0), coreRadius * 1.6, coreRadius * 1.6);
-        painter->restore();
-    }
-
-    if (styleType == 0) {
-        // ================== 1. 恒星 (Star - 极简呼吸) ==================
-        double pulse = sin(currentMs / 500.0 + seed);
-        qreal glowRadius = coreRadius * 1.5 + pulse * (coreRadius * 0.1);
-
-        QColor starColor = QColor::fromHsv(hue, 200, 255);
-
-        QRadialGradient outerGlow(0, 0, glowRadius);
-        outerGlow.setColorAt(0, QColor(starColor.red(), starColor.green(), starColor.blue(), 80));
-        outerGlow.setColorAt(1, Qt::transparent);
-        painter->fillRect(QRectF(-glowRadius, -glowRadius, glowRadius*2, glowRadius*2), outerGlow);
-
-        QRadialGradient coreGrad(0, 0, coreRadius);
-        coreGrad.setColorAt(0, Qt::white);
-        coreGrad.setColorAt(0.4, starColor.lighter(120));
-        coreGrad.setColorAt(0.9, starColor);
-        coreGrad.setColorAt(1, Qt::transparent);
-
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(coreGrad);
-        painter->drawEllipse(QPointF(0, 0), coreRadius, coreRadius);
-
-    } else if (styleType == 1) {
-        // ================== 2. 行星 (Planet - 干净明暗) ==================
-        QColor planetColor = QColor::fromHsv(hue, 160, 200);
-        qreal tilt = (seed % 60) - 30;
-
-        painter->save();
-        painter->rotate(tilt);
-
-        QRadialGradient bodyGrad(-coreRadius * 0.3, -coreRadius * 0.3, coreRadius * 1.5);
-        bodyGrad.setColorAt(0, planetColor.lighter(150));
-        bodyGrad.setColorAt(0.5, planetColor);
-        bodyGrad.setColorAt(0.85, planetColor.darker(250));
-        bodyGrad.setColorAt(1, QColor(0, 0, 0));
-
-        painter->setPen(QPen(QColor(0, 0, 0, 150), 1));
-        painter->setBrush(bodyGrad);
-        painter->drawEllipse(QPointF(0, 0), coreRadius, coreRadius);
-
-        painter->restore();
-
-    } else {
-        // ================== 3. 黑洞 (Black Hole - 完美光子圈恢复版) ==================
-        QColor glowColor = QColor::fromHsv(hue, 150, 255);
-        double holePulse = sin(currentMs / 500.0 + seed);
-
-        // 光晕拉大，给光子环充足展示空间
-        qreal lensRadius = coreRadius * 1.5 + holePulse * (coreRadius * 0.15);
-
-        QRadialGradient lensGrad(0, 0, lensRadius);
-
-        // 精准计算白环位置，保证绝对视界的纯黑部分不遮挡最耀眼的光子球
-        lensGrad.setColorAt(0.35, Qt::transparent);
-        lensGrad.setColorAt(0.42, Qt::white);  // 极其明亮锐利的光子环！
-        lensGrad.setColorAt(0.6, glowColor.lighter(120));
-        lensGrad.setColorAt(1, Qt::transparent);
-
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(lensGrad);
-        painter->drawEllipse(QPointF(0, 0), lensRadius, lensRadius);
-
-        // 纯净的绝对视界黑体，半径为 0.85 * coreRadius
-        painter->setPen(QPen(QColor(255, 255, 255, 100), 1.0));
-        painter->setBrush(Qt::black);
-        painter->drawEllipse(QPointF(0, 0), coreRadius * 0.85, coreRadius * 0.85);
+        // 使用标志性的冰蓝高亮色 (#88C0D0)
+        painter->setPen(QPen(QColor("#88C0D0"), 3, Qt::SolidLine));
+        painter->drawEllipse(QPointF(0, 0), coreRadius + 6, coreRadius + 6);
     }
 }
 int VisualNode::getMass() const {

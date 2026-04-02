@@ -68,10 +68,6 @@ void VisualEdge::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
     if (!m_srcNode || !m_destNode) return;
     if (m_srcNode->collidesWithItem(m_destNode)) return; // 如果球重叠了就不画线
 
-    QColor normalColor(88, 166, 255, 120);   // 浅蓝 (未选中)
-    QColor selectedColor(0, 229, 255, 255);  // 青色高亮 (选中)
-    QColor glowColor = isSelected() ? selectedColor : normalColor;
-
     QPointF srcPos = m_srcNode->scenePos();
     QPointF dstPos = m_destNode->scenePos();
     QLineF line(srcPos, dstPos);
@@ -99,38 +95,40 @@ void VisualEdge::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
         }
     }
 
-    // --- 绘制双层结构，制造发光光束感 ---
-    // 1. 底层：半透明的粗光晕层 (Blur/Glow)
-    painter->setPen(QPen(QColor(glowColor.red(), glowColor.green(), glowColor.blue(), 30), 6, Qt::SolidLine, Qt::RoundCap));
-    painter->setBrush(Qt::NoBrush);
-    painter->drawPath(path);
 
-    // 2. 顶层：明亮的核心实体线
-    painter->setPen(QPen(glowColor, 1.5, Qt::SolidLine, Qt::RoundCap));
+    QColor normalColor("#4C566A");  // 默认暗蓝灰色
+    QColor selectedColor("#88C0D0"); // 选中时冰蓝色
+
+    QPen linePen = isSelected() ? QPen(selectedColor, 2.5, Qt::SolidLine, Qt::RoundCap)
+                                : QPen(normalColor, 1.5, Qt::SolidLine, Qt::RoundCap);
+    painter->setPen(linePen);
+    painter->setBrush(Qt::NoBrush);
     painter->drawPath(path);
 
     // --- 绘制连线上的关系文字 ---
     if (!m_relationType.isEmpty()) {
         QPointF textPos = path.pointAtPercent(0.5);
-
         painter->save();
         painter->translate(textPos);
 
         double angle = line.angle();
         painter->rotate(-angle);
-        if (angle > 90 && angle < 270) {
-             painter->rotate(180); // 防止文字倒着显示
-        }
+        if (angle > 90 && angle < 270) painter->rotate(180);
 
-        // 标签背景：星空深蓝半透明
-        QRectF bgRect(-30, -10, 60, 20);
-        painter->setBrush(QColor(10, 20, 35, 200));
-        painter->setPen(QPen(QColor(88, 166, 255, 80), 1));
-        painter->drawRoundedRect(bgRect, 4, 4);
+        // 获取文字宽度
+        QFont font("Microsoft YaHei", 8);
+        QFontMetrics metrics(font);
+        int textWidth = metrics.horizontalAdvance(m_relationType);
+
+        // 标签背景：硬朗的扁平矩形
+        QRectF bgRect(-textWidth/2 - 6, -10, textWidth + 12, 20);
+        painter->setBrush(QColor("#3B4252")); // 背景同控制面板
+        painter->setPen(QPen(QColor("#4C566A"), 1)); // 极细边框
+        painter->drawRoundedRect(bgRect, 3, 3); // 微小的圆角，更显专业
 
         // 标签文字
-        painter->setPen(QColor(220, 230, 255));
-        painter->setFont(QFont("Microsoft YaHei", 8));
+        painter->setPen(QColor("#D8DEE9"));
+        painter->setFont(font);
         painter->drawText(bgRect, Qt::AlignCenter, m_relationType);
 
         painter->restore();

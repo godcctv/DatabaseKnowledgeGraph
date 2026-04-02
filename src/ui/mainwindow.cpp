@@ -93,33 +93,23 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform);
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 
-    QPixmap starPixmap(1000, 1000);
-    starPixmap.fill(QColor("#0B0D17"));
+    // 找到这段代码（大约在第 64-89 行）并替换为：
 
-    QPainter painter(&starPixmap);
+    // --- Nord Theme 极简极客风：点阵网格背景 ---
+    // 生成一个 40x40 的平铺图块
+    QPixmap bgPixmap(40, 40);
+    bgPixmap.fill(QColor("#2E3440")); // Nord 的标志性基础底色 (Polar Night)
+
+    QPainter painter(&bgPixmap);
     painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor("#434C5E")); // 稍微亮一点的网格点颜色
 
-    // 随机生成星星
-    int starCount = 200; // 星星数量
-    for (int i = 0; i < starCount; ++i) {
-        // 随机坐标
-        int x = QRandomGenerator::global()->bounded(1000);
-        int y = QRandomGenerator::global()->bounded(1000);
+    // 在中心画一个 2x2 的细微方点，平铺后会形成科技感极强的网格
+    painter.drawRect(19, 19, 2, 2);
 
-        // 随机透明度 (50~255)，模拟星星闪烁亮暗不同
-        int alpha = QRandomGenerator::global()->bounded(50, 255);
-        QColor starColor(255, 255, 255, alpha);
-
-        // 随机大小 (1~3像素)
-        int size = QRandomGenerator::global()->bounded(1, 3);
-
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(starColor);
-        painter.drawEllipse(x, y, size, size);
-    }
-
-    // 将生成的星空图设置为背景刷
-    ui->graphicsView->setBackgroundBrush(QBrush(starPixmap));
+    // 将网格图设置为画板背景（Qt 会自动平铺）
+    ui->graphicsView->setBackgroundBrush(QBrush(bgPixmap));
 
     // 允许鼠标拖拽画布（像地图一样平移）
     ui->graphicsView->setDragMode(QGraphicsView::ScrollHandDrag);

@@ -1,145 +1,153 @@
-/* src/ui/style.qss - 星空科幻版 */
+/* src/ui/style.qss - Nord Theme 极简极客风 */
 
 /* ================= 全局基础设定 ================= */
 QWidget {
-    /* 与代码中生成的星空背景 (#0B0D17) 保持色调一致，但稍亮一点 */
-    background-color: #0E1019;
-    color: #E0E6ED;            /* 亮银色文字，比纯白柔和 */
-    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    background-color: #2E3440; /* Nord Polar Night 基底色 */
+    color: #D8DEE9;            /* Nord Snow Storm 文本色 */
+    font-family: "Microsoft YaHei", "-apple-system", sans-serif;
     font-size: 10pt;
-    selection-background-color: #00E5FF; /* 选中时的霓虹青色 */
-    selection-color: #000000;
     outline: none;
 }
 
-/* ================= 顶部菜单栏 (QMenuBar) ================= */
+/* ================= 菜单栏与菜单 ================= */
 QMenuBar {
-    background-color: #0B0D17; /* 深邃黑 */
-    border-bottom: 1px solid #2A2F45; /* 只有一条微妙的蓝灰底边 */
+    background-color: #2E3440;
+    border-bottom: 1px solid #434C5E;
 }
 QMenuBar::item {
     background: transparent;
     padding: 8px 16px;
-    color: #A0AAB5;
+    color: #ECEFF4;
 }
 QMenuBar::item:selected {
-    background-color: rgba(255, 255, 255, 0.05); /* 微弱的白色高亮 */
-    color: #FFFFFF;
+    background-color: #3B4252;
 }
 QMenu {
-    background-color: #161925; /* 菜单下拉框深蓝灰 */
-    border: 1px solid #2A2F45;
-    padding: 5px;
+    background-color: #3B4252;
+    border: 1px solid #4C566A;
+    padding: 4px;
 }
 QMenu::item {
     padding: 6px 24px;
 }
 QMenu::item:selected {
-    background-color: #00E5FF; /* 选中变为霓虹青 */
-    color: #000000;            /* 文字变黑以保证对比度 */
+    background-color: #88C0D0; /* Nord Frost 蓝 */
+    color: #2E3440;            /* 选中时文字反白变暗 */
     border-radius: 2px;
 }
 
-/* ================= 工具栏 (QToolBar) ================= */
+/* ================= 工具栏 ================= */
 QToolBar {
-    background-color: #0E1019;
-    border-bottom: 1px solid #2A2F45;
-    spacing: 10px; /* 按钮间距 */
+    background-color: #2E3440;
+    border-bottom: 1px solid #434C5E;
+    spacing: 8px;
     padding: 5px;
 }
-/* 工具栏按钮 */
 QToolButton {
     background-color: transparent;
     border: 1px solid transparent;
     border-radius: 4px;
     padding: 6px 12px;
-    color: #E0E6ED;
-    font-weight: bold;
+    color: #D8DEE9;
 }
 QToolButton:hover {
-    background-color: rgba(0, 229, 255, 0.1); /* 鼠标悬停泛青光 */
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    color: #00E5FF;
+    background-color: #3B4252;
+    border: 1px solid #4C566A;
 }
-QToolButton:pressed {
-    background-color: rgba(0, 229, 255, 0.2);
-    border: 1px solid #00E5FF;
+QToolButton:checked, QToolButton:pressed {
+    background-color: #434C5E;
+    color: #88C0D0;
+    border: 1px solid #88C0D0;
 }
-/* 工具栏分隔符 */
 QToolBar::separator {
-    background-color: #2A2F45;
+    background-color: #4C566A;
     width: 1px;
     margin: 4px 8px;
 }
-/* 工具栏里的搜索框 (QLineEdit) */
-QLineEdit {
-    background-color: #08090F;
-    border: 1px solid #2A2F45;
-    border-radius: 14px; /* 圆角搜索框 */
-    padding: 4px 12px;
-    color: #00E5FF; /* 输入文字也是青色 */
-    selection-background-color: #00E5FF;
-    selection-color: #000000;
-}
-QLineEdit:focus {
-    border: 1px solid #00E5FF; /* 聚焦时边框发光 */
-}
 
-/* ================= 右侧属性面板 (QTreeWidget) ================= */
-QTreeWidget {
-    background-color: rgba(22, 25, 37, 0.9); /* 轻微半透明的深蓝背景 */
+/* ================= 输入框/下拉框 ================= */
+QLineEdit, QComboBox, QTextEdit {
+    background-color: #3B4252;
+    border: 1px solid #4C566A;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #ECEFF4;
+}
+QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
+    border: 1px solid #88C0D0;
+}
+QComboBox::drop-down {
     border: none;
-    border-left: 1px solid #2A2F45;
 }
 
-/* 表头 */
+/* ================= 右侧属性面板 (树形组件) ================= */
+QTreeWidget {
+    background-color: #2E3440;
+    border: none;
+    border-left: 1px solid #434C5E;
+}
 QHeaderView::section {
-    background-color: #0E1019;
-    color: #00E5FF;            /* 表头文字青色 */
+    background-color: #3B4252;
+    color: #88C0D0;
     padding: 10px;
     border: none;
-    border-bottom: 2px solid #2A2F45;
-    font-weight: bold;
-    text-transform: uppercase;
+    border-bottom: 1px solid #4C566A;
 }
-
-/* 列表项 */
 QTreeWidget::item {
-    height: 36px; /* 更高的行高，显得大气 */
-    border-bottom: 1px solid rgba(42, 47, 69, 0.5); /* 极细的分隔线 */
+    height: 32px;
+    border-bottom: 1px solid #3B4252;
 }
 QTreeWidget::item:hover {
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: #3B4252;
 }
 QTreeWidget::item:selected {
-    background-color: rgba(0, 229, 255, 0.15); /* 选中项背景泛光 */
-    color: #FFFFFF;
-    border-left: 3px solid #00E5FF; /* 左侧亮条指示 */
+    background-color: #434C5E;
+    color: #88C0D0;
+    border-left: 3px solid #88C0D0;
 }
 
-/* ================= 滚动条 (极简风格) ================= */
+/* ================= 按钮 ================= */
+QPushButton {
+    background-color: #4C566A;
+    color: #ECEFF4;
+    border: 1px solid #434C5E;
+    padding: 6px 16px;
+    border-radius: 4px;
+}
+QPushButton:hover {
+    background-color: #5E81AC; /* 悬停时变蓝 */
+    border: 1px solid #81A1C1;
+}
+QPushButton:pressed {
+    background-color: #81A1C1;
+}
+
+/* ================= 极简滚动条 ================= */
 QScrollBar:vertical {
     border: none;
-    background: #0E1019;
-    width: 8px;
+    background: #2E3440;
+    width: 10px;
     margin: 0px;
 }
 QScrollBar::handle:vertical {
-    background: #2A2F45;
+    background: #4C566A;
     min-height: 20px;
-    border-radius: 4px;
+    border-radius: 5px;
 }
 QScrollBar::handle:vertical:hover {
-    background: #00E5FF; /* 滚动条悬停变亮 */
+    background: #88C0D0;
 }
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    height: 0px;
-}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
     background: none;
+    height: 0px;
 }
 
-/* ================= 分割器 (QSplitter) ================= */
+/* ================= 弹窗 ================= */
+QDialog {
+    background-color: #2E3440;
+    border: 1px solid #4C566A;
+}
 QSplitter::handle {
-    background-color: #0E1019;
+    background-color: #434C5E;
 }
