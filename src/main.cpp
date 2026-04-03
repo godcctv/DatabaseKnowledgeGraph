@@ -92,7 +92,8 @@ int main(int argc, char *argv[]) {
     if (currentUser.isAdmin) {
         // 【路线 A：管理员后台】
         UserManagementDialog adminPanel;
-        return adminPanel.exec();
+        adminPanel.show();       // 改为普通显示，不阻塞局部循环
+        return a.exec();
     } else {
         // 【路线 B：普通用户工作台】
         ProjectSelectionDialog selectDialog;

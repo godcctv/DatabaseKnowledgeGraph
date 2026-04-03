@@ -16,6 +16,7 @@ private slots:
     void onAddUserClicked();
     void onResetPasswordClicked();
     void onDeleteUserClicked();
+    void onEnterGraphWorkspace();
 
 private:
     QTableWidget *m_table;

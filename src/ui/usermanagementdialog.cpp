@@ -1,5 +1,8 @@
 #include "usermanagementdialog.h"
 #include "../database/UserRepository.h"
+#include "ProjectSelectionDialog.h" // 引入项目选择框
+#include "mainwindow.h"             // 引入主图形界面
+#include <QApplication>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTableWidget>
@@ -11,94 +14,184 @@
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QComboBox>
+#include <QStackedWidget>
+#include <QFrame>
 
 UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
-    setWindowTitle("知识图谱系统 - 后台管理中心 (Admin)");
-    resize(700, 500);
+    setWindowTitle("知识图谱系统 - 管理员仪表盘 (Admin Dashboard)");
+    resize(900, 600); // 调大窗口以适应侧边栏
 
-    QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(30, 30, 30, 30);
-    mainLayout->setSpacing(20);
+    // 主布局 (水平)
+    QHBoxLayout *mainLayout = new QHBoxLayout(this);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
 
-    // 标题
-    QLabel* titleLabel = new QLabel("系 统 用 户 管 理", this);
+    // ================= 1. 左侧导航侧边栏 =================
+    QFrame *sidebar = new QFrame(this);
+    sidebar->setObjectName("Sidebar");
+    sidebar->setFixedWidth(200);
+    QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
+    sidebarLayout->setContentsMargins(10, 30, 10, 20);
+    sidebarLayout->setSpacing(10);
+
+    QLabel *logoLabel = new QLabel("🚀 管理员控制台", sidebar);
+    logoLabel->setStyleSheet("color: #88C0D0; font-size: 18px; font-weight: bold; margin-bottom: 20px;");
+    logoLabel->setAlignment(Qt::AlignCenter);
+    sidebarLayout->addWidget(logoLabel);
+
+    QPushButton *btnUserMgmt = new QPushButton("👥 后台用户管理", sidebar);
+    btnUserMgmt->setObjectName("SidebarBtnActive"); // 默认处于选中状态
+
+    QPushButton *btnWorkspace = new QPushButton("🌌 进入图谱工作台", sidebar);
+    btnWorkspace->setObjectName("SidebarBtn");
+
+    QPushButton *btnExit = new QPushButton("🚪 退出系统", sidebar);
+    btnExit->setObjectName("SidebarBtnExit");
+
+    sidebarLayout->addWidget(btnUserMgmt);
+    sidebarLayout->addWidget(btnWorkspace);
+    sidebarLayout->addStretch();
+    sidebarLayout->addWidget(btnExit);
+
+    // ================= 2. 右侧内容区 =================
+    // 使用 StackedWidget 方便你以后扩展更多后台页面（如系统日志、权限分配）
+    QStackedWidget *stackedWidget = new QStackedWidget(this);
+
+    // --- 页面 A: 用户管理面板 ---
+    QWidget *userMgmtPage = new QWidget();
+    QVBoxLayout *pageLayout = new QVBoxLayout(userMgmtPage);
+    pageLayout->setContentsMargins(30, 30, 30, 30);
+    pageLayout->setSpacing(20);
+
+    QLabel* titleLabel = new QLabel("系 统 用 户 管 理", userMgmtPage);
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setStyleSheet("color: #88C0D0; font-size: 24px; font-weight: bold; letter-spacing: 2px; border-bottom: 1px solid #4C566A; padding-bottom: 15px;");
-    mainLayout->addWidget(titleLabel);
+    pageLayout->addWidget(titleLabel);
 
-    // 1. 创建表格
-    m_table = new QTableWidget(this);
+    m_table = new QTableWidget(userMgmtPage);
     m_table->setColumnCount(4);
     m_table->setHorizontalHeaderLabels({"用户 ID", "用户名", "角色权限", "密码"});
     m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     m_table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers); // 禁止双击编辑表格
-    mainLayout->addWidget(m_table);
+    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    pageLayout->addWidget(m_table);
 
-    // 2. 创建底部按钮
     QHBoxLayout *btnLayout = new QHBoxLayout();
-    m_btnAdd = new QPushButton("新增管理员/用户", this);
-    m_btnReset = new QPushButton("强制重置密码", this);
-    m_btnDelete = new QPushButton("永久删除用户", this);
-    m_btnDelete->setObjectName("BtnDanger"); // 绑定危险操作样式
+    m_btnAdd = new QPushButton("新增管理员/用户", userMgmtPage);
+    m_btnReset = new QPushButton("强制重置密码", userMgmtPage);
+    m_btnDelete = new QPushButton("永久删除用户", userMgmtPage);
+    m_btnDelete->setObjectName("BtnDanger");
 
     btnLayout->addWidget(m_btnAdd);
     btnLayout->addWidget(m_btnReset);
     btnLayout->addStretch();
     btnLayout->addWidget(m_btnDelete);
 
-    mainLayout->addLayout(btnLayout);
+    pageLayout->addLayout(btnLayout);
+    stackedWidget->addWidget(userMgmtPage);
 
+    // 组装主布局
+    mainLayout->addWidget(sidebar);
+    mainLayout->addWidget(stackedWidget);
+
+    // ================= 3. 仪表盘全局样式 (Nord风) =================
     this->setStyleSheet(R"(
-    QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
-    QTableWidget {
-        background-color: #3B4252; color: #D8DEE9;
-        border: 1px solid #4C566A; gridline-color: #434C5E;
-        border-radius: 4px; font-size: 14px; outline: none;
-    }
-    QHeaderView::section {
-        background-color: #2E3440; color: #88C0D0; padding: 10px;
-        border: none; border-bottom: 1px solid #4C566A;
-    }
-    QTableWidget::item:selected { background-color: #4C566A; color: #ECEFF4; }
-    QPushButton {
-        background-color: #4C566A; color: #ECEFF4; border: 1px solid #434C5E;
-        padding: 8px 18px; border-radius: 4px; font-size: 14px;
-    }
-    QPushButton:hover { background-color: #5E81AC; }
-    QPushButton#BtnDanger { color: #BF616A; border-color: #BF616A; background-color: transparent; }
-    QPushButton#BtnDanger:hover { background-color: #BF616A; color: #ECEFF4; }
-)");
+        QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
+        QFrame#Sidebar { background-color: #3B4252; border-right: 1px solid #4C566A; }
+        QPushButton#SidebarBtn, QPushButton#SidebarBtnActive, QPushButton#SidebarBtnExit {
+            background-color: transparent; color: #D8DEE9; border: none;
+            padding: 12px; text-align: left; padding-left: 20px; font-size: 15px; border-radius: 4px;
+        }
+        QPushButton#SidebarBtn:hover { background-color: #434C5E; }
+        /* 左侧边栏选中时的冰蓝色高亮指示器 */
+        QPushButton#SidebarBtnActive {
+            background-color: #4C566A; color: #88C0D0; font-weight: bold;
+            border-left: 4px solid #88C0D0; border-top-left-radius: 0; border-bottom-left-radius: 0;
+        }
+        QPushButton#SidebarBtnExit:hover { background-color: #BF616A; color: #ECEFF4; }
 
+        QTableWidget {
+            background-color: #3B4252; color: #D8DEE9;
+            border: 1px solid #4C566A; gridline-color: #434C5E;
+            border-radius: 4px; font-size: 14px; outline: none;
+        }
+        QHeaderView::section {
+            background-color: #2E3440; color: #88C0D0; padding: 10px;
+            border: none; border-bottom: 1px solid #4C566A;
+        }
+        QTableWidget::item:selected { background-color: #4C566A; color: #ECEFF4; }
+        QPushButton {
+            background-color: #4C566A; color: #ECEFF4; border: 1px solid #434C5E;
+            padding: 8px 18px; border-radius: 4px; font-size: 14px;
+        }
+        QPushButton:hover { background-color: #5E81AC; }
+        QPushButton#BtnDanger { color: #BF616A; border-color: #BF616A; background-color: transparent; }
+        QPushButton#BtnDanger:hover { background-color: #BF616A; color: #ECEFF4; }
+    )");
+
+    // ================= 4. 信号槽连接 =================
     connect(m_btnAdd, &QPushButton::clicked, this, &UserManagementDialog::onAddUserClicked);
     connect(m_btnReset, &QPushButton::clicked, this, &UserManagementDialog::onResetPasswordClicked);
     connect(m_btnDelete, &QPushButton::clicked, this, &UserManagementDialog::onDeleteUserClicked);
 
+    // 仪表盘侧边栏按钮交互
+    connect(btnWorkspace, &QPushButton::clicked, this, &UserManagementDialog::onEnterGraphWorkspace);
+    connect(btnExit, &QPushButton::clicked, this, &QDialog::accept);
+
     loadUsers();
 }
+
+// ================= 进入业务图谱前台的逻辑 =================
+void UserManagementDialog::onEnterGraphWorkspace() {
+    // 1. 弹出项目选择框
+    ProjectSelectionDialog selectDialog(this);
+    if (selectDialog.exec() == QDialog::Accepted) {
+        int ontoId = selectDialog.getSelectedOntologyId();
+        QString ontoName = selectDialog.getSelectedOntologyName();
+
+        // 【核心修复】：临时禁用“最后一个窗口关闭时退出程序”的默认行为
+        QApplication::setQuitOnLastWindowClosed(false);
+
+        // 2. 隐藏当前的后台管理仪表盘
+        this->hide();
+
+        // 3. 动态创建图谱工作台 (MainWindow)
+        MainWindow* w = new MainWindow(ontoId, ontoName);
+        w->setAttribute(Qt::WA_DeleteOnClose); // 窗口关闭时自动清理内存
+
+        // 4. 当图谱工作台关闭时，重新显示后台管理仪表盘
+        connect(w, &MainWindow::destroyed, this, [this]() {
+            this->show();
+            // 重新开启默认的退出逻辑，保证点击仪表盘的“退出系统”时能正常结束进程
+            QApplication::setQuitOnLastWindowClosed(true);
+        });
+
+        w->show();
+    }
+}
+// ---------------- 以下为原有的后台用户 CRUD 操作 ----------------
 
 void UserManagementDialog::loadUsers() {
     m_table->setRowCount(0);
     QList<User> users = UserRepository::getAllUsers();
-    
+
     for (int i = 0; i < users.size(); ++i) {
         m_table->insertRow(i);
-        
+
         QTableWidgetItem* idItem = new QTableWidgetItem(QString::number(users[i].id));
         idItem->setTextAlignment(Qt::AlignCenter);
         m_table->setItem(i, 0, idItem);
-        
+
         m_table->setItem(i, 1, new QTableWidgetItem(users[i].username));
-        
+
         QTableWidgetItem *roleItem = new QTableWidgetItem(users[i].isAdmin ? "管理员" : "普通用户");
         if (users[i].isAdmin) {
-            roleItem->setForeground(QColor("#88C0D0")); // 统一为 Nord 冰蓝色
+            roleItem->setForeground(QColor("#88C0D0"));
             roleItem->setFont(QFont("Microsoft YaHei", 10, QFont::Bold));
         }
         m_table->setItem(i, 2, roleItem);
-        
         m_table->setItem(i, 3, new QTableWidgetItem(users[i].password));
     }
 }
@@ -106,16 +199,16 @@ void UserManagementDialog::loadUsers() {
 void UserManagementDialog::onAddUserClicked() {
     QDialog addDialog(this);
     addDialog.setWindowTitle("新增用户");
-    addDialog.setStyleSheet(this->styleSheet()); 
-    
+    addDialog.setStyleSheet(this->styleSheet());
+
     QFormLayout *form = new QFormLayout(&addDialog);
     form->setContentsMargins(20, 20, 20, 20);
     form->setSpacing(15);
-    
+
     QLineEdit *nameEdit = new QLineEdit(&addDialog);
     QLineEdit *pwdEdit = new QLineEdit(&addDialog);
     QComboBox *roleCombo = new QComboBox(&addDialog);
-    
+
     roleCombo->addItems({"普通用户", "管理员"});
     roleCombo->setStyleSheet("background-color: #3B4252; color: #ECEFF4; border: 1px solid #4C566A; padding: 5px;");
     nameEdit->setStyleSheet(roleCombo->styleSheet());
@@ -124,10 +217,10 @@ void UserManagementDialog::onAddUserClicked() {
     form->addRow("用户名:", nameEdit);
     form->addRow("初始密码:", pwdEdit);
     form->addRow("角色权限:", roleCombo);
-    
+
     QPushButton *btnOk = new QPushButton("确定添加", &addDialog);
     form->addRow("", btnOk);
-    
+
     connect(btnOk, &QPushButton::clicked, [&]() {
         QString name = nameEdit->text().trimmed();
         QString pwd = pwdEdit->text().trimmed();
@@ -143,7 +236,7 @@ void UserManagementDialog::onAddUserClicked() {
     });
 
     if (addDialog.exec() == QDialog::Accepted) {
-        loadUsers(); 
+        loadUsers();
     }
 }
 
@@ -158,13 +251,14 @@ void UserManagementDialog::onResetPasswordClicked() {
     QString userName = m_table->item(row, 1)->text();
 
     bool ok;
-    QString newPwd = QInputDialog::getText(this, "重置密码", 
-        QString("请输入用户 [%1] 的新密码:").arg(userName), 
+    QString newPwd = QInputDialog::getText(this, "重置密码",
+        QString("请输入用户 [%1] 的新密码:").arg(userName),
         QLineEdit::Normal, "", &ok);
 
     if (ok && !newPwd.trimmed().isEmpty()) {
         if (UserRepository::resetPassword(userId, newPwd)) {
             QMessageBox::information(this, "成功", "密码重置成功！");
+            loadUsers();
         } else {
             QMessageBox::warning(this, "失败", "密码重置失败！");
         }
