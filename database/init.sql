@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS attribute;
 DROP TABLE IF EXISTS relationship;
 DROP TABLE IF EXISTS node;
 DROP TABLE IF EXISTS ontology;
-
+DROP TABLE IF EXISTS users;
 -- 1. 本体表
 CREATE TABLE ontology (
                           ontology_id INT PRIMARY KEY AUTO_INCREMENT,
