@@ -25,103 +25,29 @@ ProjectSelectionDialog::ProjectSelectionDialog(QWidget *parent)
 void ProjectSelectionDialog::setupUI() {
     // 核心配色：深空蓝背景，亮蓝/青色高亮，白色/浅蓝文本
     setStyleSheet(R"(
-        QDialog {
-            background-color: #050a14; /* 深空蓝底色 */
-            /* 如果有星空背景图，可以取消下面注释并替换路径 */
-            /* background-image: url(:/images/star_bg.jpg); */
-            background-position: center;
-            color: #d0e6ff; /* 浅蓝文本 */
-            font-family: "Microsoft YaHei", "Segoe UI", sans-serif; /* 现代无衬线字体 */
-        }
-
-        /* 标题 */
-        QLabel#TitleLabel {
-            font-size: 26px;
-            font-weight: bold;
-            color: #58a6ff; /* 亮蓝色标题 */
-            margin-bottom: 25px;
-            /* 渐变分割线，营造科幻感 */
-            border-bottom: 2px solid qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(88, 166, 255, 0), stop:0.5 rgba(88, 166, 255, 255), stop:1 rgba(88, 166, 255, 0));
-            letter-spacing: 2px;
-            padding-bottom: 10px;
-        }
-
-        /* 列表容器 */
-        QListWidget {
-            background-color: rgba(16, 24, 40, 0.8); /* 半透明深蓝 */
-            border: 1px solid #1e3a5a; /* 深蓝边框 */
-            border-radius: 8px;
-            color: #d0e6ff;
-            font-size: 15px;
-            padding: 8px;
-            outline: none; /* 去掉虚线框 */
-        }
-
-        /* 列表项 */
-        QListWidget::item {
-            height: 50px;
-            margin: 3px 0;
-            background-color: rgba(255, 255, 255, 0.03); /* 极淡的背景 */
-            border: 1px solid transparent;
-            border-radius: 6px;
-            padding-left: 15px;
-        }
-
-        /* 列表项悬浮 */
-        QListWidget::item:hover {
-            background-color: rgba(88, 166, 255, 0.1);
-            border-color: rgba(88, 166, 255, 0.5);
-        }
-
-        /* 列表项选中：亮蓝高亮 */
-        QListWidget::item:selected {
-            background-color: rgba(88, 166, 255, 0.2);
-            border: 1px solid #58a6ff;
-            color: #ffffff;
-        }
-
-        /* 按钮通用样式 */
-        QPushButton {
-            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e3a5a, stop:1 #101828); /* 深蓝渐变 */
-            color: #d0e6ff;
-            border: 1px solid #3a6ea5;
-            padding: 10px 24px;
-            font-size: 15px;
-            font-weight: 600;
-            border-radius: 6px;
-        }
-        QPushButton:hover {
-            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3a6ea5, stop:1 #1e3a5a);
-            border-color: #58a6ff;
-            color: #ffffff;
-        }
-        QPushButton:pressed {
-            background-color: #0f172a;
-            border-color: #2a4e75;
-        }
-
-        /* 主要按钮（打开）：亮蓝底色 */
-        QPushButton#BtnPrimary {
-            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0066cc, stop:1 #003366);
-            border: 1px solid #0077ff;
-            color: #ffffff;
-        }
-        QPushButton#BtnPrimary:hover {
-            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0077ff, stop:1 #004488);
-        }
-
-        /* 危险按钮（删除）：警告红 */
-        QPushButton#BtnDanger {
-            color: #ff6b6b;
-            background-color: transparent;
-            border: 1px solid #ff6b6b;
-        }
-        QPushButton#BtnDanger:hover {
-            color: #ff9999;
-            border-color: #ff9999;
-            background-color: rgba(255, 107, 107, 0.1);
-        }
-    )");
+    QDialog { background-color: #2E3440; color: #D8DEE9; font-family: "Microsoft YaHei", sans-serif; }
+    QLabel#TitleLabel {
+        font-size: 26px; font-weight: bold; color: #88C0D0; margin-bottom: 25px;
+        border-bottom: 2px solid #4C566A; letter-spacing: 2px; padding-bottom: 10px;
+    }
+    QListWidget {
+        background-color: #3B4252; border: 1px solid #4C566A; border-radius: 4px;
+        color: #D8DEE9; font-size: 15px; padding: 8px; outline: none;
+    }
+    QListWidget::item { height: 40px; margin: 2px 0; border-radius: 4px; padding-left: 10px; }
+    QListWidget::item:hover { background-color: #434C5E; }
+    QListWidget::item:selected { background-color: #4C566A; border-left: 4px solid #88C0D0; color: #ECEFF4; }
+    QPushButton {
+        background-color: #4C566A; color: #ECEFF4; border: 1px solid #434C5E;
+        padding: 10px 24px; font-size: 14px; border-radius: 4px;
+    }
+    QPushButton:hover { background-color: #5E81AC; }
+    QPushButton:pressed { background-color: #81A1C1; }
+    QPushButton#BtnPrimary { background-color: #5E81AC; border: 1px solid #81A1C1; }
+    QPushButton#BtnPrimary:hover { background-color: #81A1C1; }
+    QPushButton#BtnDanger { color: #BF616A; background-color: transparent; border: 1px solid #BF616A; }
+    QPushButton#BtnDanger:hover { background-color: #BF616A; color: #ECEFF4; }
+)");
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(25);
@@ -135,12 +61,7 @@ void ProjectSelectionDialog::setupUI() {
 
     // 项目列表
     m_projectList = new QListWidget(this);
-    // 给列表加一个蓝色的发光阴影
-    QGraphicsDropShadowEffect* listShadow = new QGraphicsDropShadowEffect();
-    listShadow->setBlurRadius(20);
-    listShadow->setColor(QColor(88, 166, 255, 50)); // 半透明亮蓝
-    listShadow->setOffset(0, 4);
-    m_projectList->setGraphicsEffect(listShadow);
+
     mainLayout->addWidget(m_projectList);
 
     // 按钮区域
@@ -155,22 +76,6 @@ void ProjectSelectionDialog::setupUI() {
     m_btnOpen = new QPushButton("打开项目", this);
     m_btnOpen->setObjectName("BtnPrimary");
     m_btnOpen->setDefault(true);
-
-    // 给主按钮加一个蓝色的呼吸光晕
-    QGraphicsDropShadowEffect* btnShadow = new QGraphicsDropShadowEffect(m_btnOpen);
-    btnShadow->setBlurRadius(20);
-    btnShadow->setColor(QColor(0, 119, 255, 150)); // 亮蓝光
-    btnShadow->setOffset(0, 0);
-    m_btnOpen->setGraphicsEffect(btnShadow);
-
-    // 呼吸动画 (保留一个简单的呼吸效果，增加科技感)
-    QPropertyAnimation* pulseAnim = new QPropertyAnimation(btnShadow, "blurRadius", this);
-    pulseAnim->setDuration(1500);
-    pulseAnim->setStartValue(10);
-    pulseAnim->setEndValue(30);
-    pulseAnim->setEasingCurve(QEasingCurve::InOutSine); // 更平滑的曲线
-    pulseAnim->setLoopCount(-1);
-    pulseAnim->start();
 
     btnLayout->addWidget(m_btnCreate);
     btnLayout->addWidget(m_btnDelete);

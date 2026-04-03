@@ -20,8 +20,8 @@ LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent) {
     // 标题
     QLabel *titleLabel = new QLabel("知 识 图 谱 系 统", this);
     titleLabel->setAlignment(Qt::AlignCenter);
-    titleLabel->setStyleSheet("color: #58a6ff; font-size: 22px; font-weight: bold; letter-spacing: 2px;");
-    
+    // 大约在第 21 行
+    titleLabel->setStyleSheet("color: #88C0D0; font-size: 22px; font-weight: bold; letter-spacing: 2px;");
     // 账号输入框
     m_usernameEdit = new QLineEdit(this);
     m_usernameEdit->setPlaceholderText("请输入账号");
@@ -53,25 +53,21 @@ LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent) {
     mainLayout->addLayout(btnLayout);
 
     this->setStyleSheet(R"(
-        QDialog { background-color: #0B0D17; border: 1px solid #2A2F45; }
-        QLineEdit {
-            background-color: #08090F; border: 1px solid #2A2F45;
-            border-radius: 6px; padding: 8px 12px; color: #00E5FF; font-size: 14px;
-        }
-        QLineEdit:focus { border: 1px solid #00E5FF; }
-        QPushButton {
-            background-color: #161925; color: #A0AAB5; border: 1px solid #2A2F45;
-            padding: 8px; border-radius: 6px; font-size: 14px; font-weight: bold;
-        }
-        QPushButton:hover { background-color: #2A2F45; color: #ffffff; }
-        QPushButton:pressed { background-color: #0B0D17; }
-        /* 登录按钮高亮 */
-        QPushButton#LoginBtn {
-            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e3a5a, stop:1 #101828);
-            color: #d0e6ff; border: 1px solid #3a6ea5;
-        }
-        QPushButton#LoginBtn:hover { background-color: #3a6ea5; border-color: #00E5FF; color: #ffffff; }
-    )");
+    QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
+    QLineEdit {
+        background-color: #3B4252; border: 1px solid #4C566A;
+        border-radius: 4px; padding: 8px 12px; color: #ECEFF4; font-size: 14px;
+    }
+    QLineEdit:focus { border: 1px solid #88C0D0; }
+    QPushButton {
+        background-color: #4C566A; color: #ECEFF4; border: 1px solid #434C5E;
+        padding: 8px; border-radius: 4px; font-size: 14px;
+    }
+    QPushButton:hover { background-color: #5E81AC; }
+    QPushButton:pressed { background-color: #81A1C1; }
+    QPushButton#LoginBtn { background-color: #5E81AC; border: 1px solid #81A1C1; }
+    QPushButton#LoginBtn:hover { background-color: #81A1C1; }
+)");
 
     // 默认回车触发登录
     m_btnLogin->setDefault(true);

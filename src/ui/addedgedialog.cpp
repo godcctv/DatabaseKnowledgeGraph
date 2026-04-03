@@ -47,35 +47,25 @@ AddEdgeDialog::AddEdgeDialog(QWidget *parent) :
     this->resize(300, 220);
 
     this->setStyleSheet(R"(
-        QDialog { background-color: #161925; border: 1px solid #2A2F45; }
-        QLabel { color: #A0AAB5; font-weight: bold; font-size: 13px; }
-        QFrame#InfoFrame {
-            background-color: rgba(0, 229, 255, 0.05); /* 微弱的青色背景 */
-            border: 1px dashed #3a6ea5;
-            border-radius: 6px;
-        }
-        QFrame#InfoFrame QLabel { color: #00E5FF; } /* 强调首尾节点文字 */
-        QComboBox {
-            background-color: #08090F;
-            border: 1px solid #2A2F45;
-            border-radius: 6px;
-            padding: 6px;
-            color: #00E5FF;
-            font-size: 13px;
-        }
-        QComboBox:focus { border: 1px solid #00E5FF; }
-        QComboBox::drop-down { border: none; }
-        QPushButton {
-            background-color: #1e3a5a;
-            color: #d0e6ff;
-            border: 1px solid #3a6ea5;
-            padding: 6px 20px;
-            border-radius: 6px;
-            font-weight: bold;
-        }
-        QPushButton:hover { background-color: #3a6ea5; border-color: #00E5FF; color: #ffffff; }
-        QPushButton:pressed { background-color: #0B0D17; }
-    )");
+    QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
+    QLabel { color: #D8DEE9; font-weight: bold; font-size: 13px; }
+    QFrame#InfoFrame {
+        background-color: #3B4252; border: 1px solid #4C566A; border-radius: 4px;
+    }
+    QFrame#InfoFrame QLabel { color: #88C0D0; }
+    QComboBox {
+        background-color: #3B4252; border: 1px solid #4C566A; border-radius: 4px;
+        padding: 6px; color: #ECEFF4; font-size: 13px;
+    }
+    QComboBox:focus { border: 1px solid #88C0D0; }
+    QComboBox::drop-down { border: none; }
+    QPushButton {
+        background-color: #4C566A; color: #ECEFF4; border: 1px solid #434C5E;
+        padding: 6px 20px; border-radius: 4px;
+    }
+    QPushButton:hover { background-color: #5E81AC; }
+    QPushButton:pressed { background-color: #81A1C1; }
+)");
 
     ui->btnOk->setDefault(true);
 

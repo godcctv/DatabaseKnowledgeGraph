@@ -23,7 +23,7 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     // 标题
     QLabel* titleLabel = new QLabel("系 统 用 户 管 理", this);
     titleLabel->setAlignment(Qt::AlignCenter);
-    titleLabel->setStyleSheet("color: #58a6ff; font-size: 24px; font-weight: bold; letter-spacing: 2px; border-bottom: 1px solid #2A2F45; padding-bottom: 15px;");
+    titleLabel->setStyleSheet("color: #88C0D0; font-size: 24px; font-weight: bold; letter-spacing: 2px; border-bottom: 1px solid #4C566A; padding-bottom: 15px;");
     mainLayout->addWidget(titleLabel);
 
     // 1. 创建表格
@@ -51,39 +51,26 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
 
     mainLayout->addLayout(btnLayout);
 
-    // 3. 注入科幻风样式
     this->setStyleSheet(R"(
-        QDialog { background-color: #050a14; border: 1px solid #2A2F45; }
-        QTableWidget { 
-            background-color: rgba(16, 24, 40, 0.8); 
-            color: #d0e6ff; 
-            border: 1px solid #1e3a5a;
-            gridline-color: #2A2F45;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        QHeaderView::section {
-            background-color: #101828;
-            color: #00E5FF;
-            padding: 10px;
-            border: none;
-            border-bottom: 2px solid #1e3a5a;
-            font-weight: bold;
-        }
-        QTableWidget::item:selected { background-color: rgba(0, 229, 255, 0.2); color: #ffffff; }
-        QPushButton {
-            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e3a5a, stop:1 #101828);
-            color: #d0e6ff;
-            border: 1px solid #3a6ea5;
-            padding: 8px 18px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        QPushButton:hover { background-color: #3a6ea5; border-color: #00E5FF; color: #ffffff; }
-        QPushButton#BtnDanger { color: #ff6b6b; border-color: #ff6b6b; background-color: transparent; }
-        QPushButton#BtnDanger:hover { background-color: rgba(255, 107, 107, 0.1); }
-    )");
+    QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
+    QTableWidget {
+        background-color: #3B4252; color: #D8DEE9;
+        border: 1px solid #4C566A; gridline-color: #434C5E;
+        border-radius: 4px; font-size: 14px; outline: none;
+    }
+    QHeaderView::section {
+        background-color: #2E3440; color: #88C0D0; padding: 10px;
+        border: none; border-bottom: 1px solid #4C566A;
+    }
+    QTableWidget::item:selected { background-color: #4C566A; color: #ECEFF4; }
+    QPushButton {
+        background-color: #4C566A; color: #ECEFF4; border: 1px solid #434C5E;
+        padding: 8px 18px; border-radius: 4px; font-size: 14px;
+    }
+    QPushButton:hover { background-color: #5E81AC; }
+    QPushButton#BtnDanger { color: #BF616A; border-color: #BF616A; background-color: transparent; }
+    QPushButton#BtnDanger:hover { background-color: #BF616A; color: #ECEFF4; }
+)");
 
     connect(m_btnAdd, &QPushButton::clicked, this, &UserManagementDialog::onAddUserClicked);
     connect(m_btnReset, &QPushButton::clicked, this, &UserManagementDialog::onResetPasswordClicked);
@@ -107,7 +94,7 @@ void UserManagementDialog::loadUsers() {
         
         QTableWidgetItem *roleItem = new QTableWidgetItem(users[i].isAdmin ? "管理员" : "普通用户");
         if (users[i].isAdmin) {
-            roleItem->setForeground(QColor("#00E5FF")); // 管理员用青色高亮显示
+            roleItem->setForeground(QColor("#88C0D0")); // 统一为 Nord 冰蓝色
             roleItem->setFont(QFont("Microsoft YaHei", 10, QFont::Bold));
         }
         m_table->setItem(i, 2, roleItem);
@@ -130,7 +117,7 @@ void UserManagementDialog::onAddUserClicked() {
     QComboBox *roleCombo = new QComboBox(&addDialog);
     
     roleCombo->addItems({"普通用户", "管理员"});
-    roleCombo->setStyleSheet("background-color: #08090F; color: #00E5FF; border: 1px solid #2A2F45; padding: 5px;");
+    roleCombo->setStyleSheet("background-color: #3B4252; color: #ECEFF4; border: 1px solid #4C566A; padding: 5px;");
     nameEdit->setStyleSheet(roleCombo->styleSheet());
     pwdEdit->setStyleSheet(roleCombo->styleSheet());
 
