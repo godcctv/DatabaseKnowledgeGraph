@@ -143,7 +143,6 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
     height: 0px;
 }
 
-/* ================= 弹窗 ================= */
 QDialog {
     background-color: #2E3440;
     border: 1px solid #4C566A;
@@ -151,3 +150,6 @@ QDialog {
 QSplitter::handle {
     background-color: #434C5E;
 }
+
+QMessageBox { background-color: #2E3440; border: 1px solid #4C566A; }
+QMessageBox QLabel { color: #D8DEE9; font-size: 14px; }

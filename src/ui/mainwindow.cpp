@@ -887,9 +887,17 @@ void MainWindow::createControlPanel() {
 
     // 2. 创建面板内的容器
     QWidget *container = new QWidget();
-    // 设置深色背景或边框，增加质感 (可选 CSS)
-    container->setStyleSheet("QWidget { background-color: rgba(30, 30, 40, 200); border-radius: 5px; } QLabel { color: #ddd; font-weight: bold; }");
+    // 设置 Nord 风格的参数控制台底色与控件样式
+    container->setStyleSheet(R"(
+        QWidget { background-color: #3B4252; border-radius: 4px; border: 1px solid #4C566A; }
+        QLabel { color: #D8DEE9; font-weight: bold; font-size: 13px; border: none; background: transparent; }
+        QSlider::groove:horizontal { border: 1px solid #4C566A; height: 6px; background: #2E3440; border-radius: 3px; }
+        QSlider::handle:horizontal { background: #88C0D0; border: 1px solid #88C0D0; width: 14px; margin: -5px 0; border-radius: 7px; }
+        QSlider::handle:horizontal:hover { background: #8FBCBB; }
+        QSpinBox { background-color: #2E3440; color: #ECEFF4; border: 1px solid #4C566A; border-radius: 3px; padding: 2px; }
+    )");
 
+    m_controlDock->setStyleSheet("QDockWidget { color: #88C0D0; font-weight: bold; } QDockWidget::title { background: #2E3440; padding: 6px; }");
     QVBoxLayout *mainLayout = new QVBoxLayout(container);
     mainLayout->setSpacing(12); // 稍微紧凑一点的间距
     mainLayout->setContentsMargins(15, 20, 15, 20); // 增加内边距，不那么拥挤
@@ -978,35 +986,34 @@ void MainWindow::showNodeDetails(int nodeId) {
     mainLayout->addLayout(btnLayout);
 
     dialog.setStyleSheet(R"(
-        QDialog { background-color: #161925; border: 1px solid #2A2F45; }
-        QLabel { color: #A0AAB5; font-size: 13px; }
+        QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
+        QLabel { color: #D8DEE9; font-size: 13px; }
         QFrame#InfoFrame {
-            background-color: rgba(0, 229, 255, 0.05); /* 微弱的青色背景 */
-            border: 1px dashed #3a6ea5;
-            border-radius: 6px;
-            padding: 5px;
+            background-color: #3B4252;
+            border: 1px solid #4C566A;
+            border-radius: 4px;
+            padding: 8px;
         }
-        QFrame#InfoFrame QLabel { color: #E0E6ED; } /* 信息区的文字更亮一点 */
+        QFrame#InfoFrame QLabel { color: #ECEFF4; }
         QTextEdit {
-            background-color: #08090F;
-            border: 1px solid #2A2F45;
-            border-radius: 6px;
+            background-color: #3B4252;
+            border: 1px solid #4C566A;
+            border-radius: 4px;
             padding: 6px;
-            color: #00E5FF; /* 描述文字呈现青色 */
+            color: #ECEFF4;
             font-size: 13px;
         }
         QPushButton {
-            background-color: #1e3a5a;
-            color: #d0e6ff;
-            border: 1px solid #3a6ea5;
+            background-color: #4C566A;
+            color: #ECEFF4;
+            border: 1px solid #434C5E;
             padding: 6px 20px;
-            border-radius: 6px;
+            border-radius: 4px;
             font-weight: bold;
         }
-        QPushButton:hover { background-color: #3a6ea5; border-color: #00E5FF; color: #ffffff; }
-        QPushButton:pressed { background-color: #0B0D17; }
+        QPushButton:hover { background-color: #5E81AC; border-color: #81A1C1; }
+        QPushButton:pressed { background-color: #81A1C1; }
     )");
-
     okBtn->setDefault(true);
     dialog.exec(); // 阻塞式弹出窗口
 }

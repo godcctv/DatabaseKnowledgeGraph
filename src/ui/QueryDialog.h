@@ -44,6 +44,23 @@ public:
         btnLayout->addWidget(okButton);
         btnLayout->addWidget(cancelButton);
         layout->addLayout(btnLayout);
+        // 赋予 Nord 样式
+        this->setStyleSheet(R"(
+            QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
+            QLabel { color: #D8DEE9; font-weight: bold; font-size: 13px; }
+            QComboBox, QLineEdit {
+                background-color: #3B4252; border: 1px solid #4C566A; border-radius: 4px;
+                padding: 6px; color: #ECEFF4; font-size: 13px;
+            }
+            QComboBox:focus, QLineEdit:focus { border: 1px solid #88C0D0; }
+            QComboBox::drop-down { border: none; }
+            QPushButton {
+                background-color: #4C566A; color: #ECEFF4; border: 1px solid #434C5E;
+                padding: 6px 20px; border-radius: 4px;
+            }
+            QPushButton:hover { background-color: #5E81AC; }
+            QPushButton:pressed { background-color: #81A1C1; }
+        )");
     }
 
     QString getAttrName() const { return attrNameCombo->currentText(); }
