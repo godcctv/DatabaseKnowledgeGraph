@@ -7,6 +7,7 @@
 #include <QPointF>
 #include <QDockWidget>
 #include "../business/GraphEditor.h" // 引入业务层
+#include "../model/User.h"
 
 
 class GraphEditor;
@@ -26,7 +27,7 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(int ontologyId, QString ontologyName, QWidget *parent = nullptr);
+    MainWindow(int ontologyId, QString ontologyName,User currentUser, QWidget *parent = nullptr);
     ~MainWindow();
     // 提供给外部添加图元的接口
     void addNodeToScene(VisualNode* node);
@@ -77,6 +78,7 @@ private:
     QPointF m_clickPos;
     QGraphicsItem* findItemById(int nodeId);
     int m_currentOntologyId;
+    User m_currentUser;
 
     void loadInitialData();
     void setupConnections();

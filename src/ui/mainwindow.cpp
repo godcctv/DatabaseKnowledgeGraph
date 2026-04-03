@@ -73,8 +73,8 @@ QWidget* createSliderRow(QWidget* parent, const QString& labelText, int min, int
     return widget;
 }
 
-MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow)
+MainWindow::MainWindow(int ontologyId, QString ontologyName,User currentUser, QWidget *parent)
+    : QMainWindow(parent), ui(new Ui::MainWindow), m_currentUser(currentUser)
 {
     ui->setupUi(this);
 
@@ -93,7 +93,6 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform);
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 
-    // 找到这段代码（大约在第 64-89 行）并替换为：
 
     // --- Nord Theme 极简极客风：点阵网格背景 ---
     // 生成一个 40x40 的平铺图块
@@ -172,6 +171,14 @@ MainWindow::MainWindow(int ontologyId, QString ontologyName, QWidget *parent)
     });
 
     renderTimer->start(16);
+    if (!m_currentUser.isAdmin) {
+        // 1. 修改权限拦截
+        ui->actionAddNode->setEnabled(m_currentUser.canEdit);
+        ui->actionAddRelation->setEnabled(m_currentUser.canEdit);
+
+        // 2. 删除权限拦截
+        ui->actionDelete->setEnabled(m_currentUser.canDelete);
+    }
 }
 
 MainWindow::~MainWindow() {
@@ -200,6 +207,10 @@ void MainWindow::setupConnections() {
 }
 
 void MainWindow::onActionAddNodeTriggered() {
+    if (!m_currentUser.isAdmin && !m_currentUser.canEdit) {
+        QMessageBox::warning(this, "权限不足", "您没有修改图谱数据的权限！");
+        return;
+    }
     AddNodeDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
         GraphNode newNode = dialog.getNodeData();
@@ -225,6 +236,10 @@ void MainWindow::onActionAddNodeTriggered() {
 }
 
 void MainWindow::onActionDeleteTriggered() {
+    if (!m_currentUser.isAdmin && !m_currentUser.canDelete) {
+        QMessageBox::warning(this, "权限不足", "您没有删除数据的权限！");
+        return;
+    }
     // 1. 优先尝试从场中删除选中的元素
     QList<QGraphicsItem*> selectedSceneItems = m_scene->selectedItems();
     if (!selectedSceneItems.isEmpty()) {
@@ -544,7 +559,10 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
             QGraphicsItem *item = m_scene->itemAt(scenePos, ui->graphicsView->transform());
 
             if (!item) {
-                // 如果是空白区域，弹出添加节点菜单
+                if (!m_currentUser.isAdmin && !m_currentUser.canEdit) {
+                    ui->statusbar->showMessage("权限不足：您没有修改(添加节点)的权限", 3000);
+                    return true;
+                }
                 QMenu menu(this);
                 QAction *addNodeAct = menu.addAction("添加节点");
 

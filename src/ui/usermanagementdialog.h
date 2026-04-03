@@ -17,12 +17,13 @@ private slots:
     void onResetPasswordClicked();
     void onDeleteUserClicked();
     void onEnterGraphWorkspace();
-
+    void onAssignPermissionsClicked();
 private:
     QTableWidget *m_table;
     QPushButton *m_btnAdd;
     QPushButton *m_btnReset;
     QPushButton *m_btnDelete;
+    QPushButton *m_btnPermissions;
 };
 
 #endif // USERMANAGEMENTDIALOG_H

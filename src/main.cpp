@@ -98,10 +98,17 @@ int main(int argc, char *argv[]) {
         // 【路线 B：普通用户工作台】
         ProjectSelectionDialog selectDialog;
         if (selectDialog.exec() == QDialog::Accepted) {
+            // 权限校验：如果没有查看权限，不准进入工作台
+            if (!currentUser.isAdmin && !currentUser.canView) {
+                QMessageBox::critical(nullptr, "拒绝访问", "您没有查看图谱的权限，请联系管理员！");
+                return 0;
+            }
+
             int ontoId = selectDialog.getSelectedOntologyId();
             QString ontoName = selectDialog.getSelectedOntologyName();
 
-            MainWindow w(ontoId, ontoName);
+            // 把 currentUser 传给 MainWindow
+            MainWindow w(ontoId, ontoName, currentUser);
             w.show();
             return a.exec();
         }

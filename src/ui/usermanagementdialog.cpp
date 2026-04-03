@@ -16,6 +16,7 @@
 #include <QComboBox>
 #include <QStackedWidget>
 #include <QFrame>
+#include <QCheckBox>
 
 UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("知识图谱系统 - 管理员仪表盘 (Admin Dashboard)");
@@ -69,8 +70,8 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     pageLayout->addWidget(titleLabel);
 
     m_table = new QTableWidget(userMgmtPage);
-    m_table->setColumnCount(4);
-    m_table->setHorizontalHeaderLabels({"用户 ID", "用户名", "角色权限", "密码"});
+    m_table->setColumnCount(5);
+    m_table->setHorizontalHeaderLabels({"用户 ID", "用户名", "角色权限", "密码","当前权限"});
     m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     m_table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -83,6 +84,9 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     m_btnReset = new QPushButton("强制重置密码", userMgmtPage);
     m_btnDelete = new QPushButton("永久删除用户", userMgmtPage);
     m_btnDelete->setObjectName("BtnDanger");
+    m_btnPermissions = new QPushButton("分配权限", userMgmtPage);
+    btnLayout->insertWidget(2, m_btnPermissions); // 插入到重置密码旁边
+    connect(m_btnPermissions, &QPushButton::clicked, this, &UserManagementDialog::onAssignPermissionsClicked);
 
     btnLayout->addWidget(m_btnAdd);
     btnLayout->addWidget(m_btnReset);
@@ -144,6 +148,7 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
 }
 
 // ================= 进入业务图谱前台的逻辑 =================
+// src/ui/usermanagementdialog.cpp
 void UserManagementDialog::onEnterGraphWorkspace() {
     // 1. 弹出项目选择框
     ProjectSelectionDialog selectDialog(this);
@@ -151,20 +156,27 @@ void UserManagementDialog::onEnterGraphWorkspace() {
         int ontoId = selectDialog.getSelectedOntologyId();
         QString ontoName = selectDialog.getSelectedOntologyName();
 
-        // 【核心修复】：临时禁用“最后一个窗口关闭时退出程序”的默认行为
         QApplication::setQuitOnLastWindowClosed(false);
 
         // 2. 隐藏当前的后台管理仪表盘
         this->hide();
 
-        // 3. 动态创建图谱工作台 (MainWindow)
-        MainWindow* w = new MainWindow(ontoId, ontoName);
-        w->setAttribute(Qt::WA_DeleteOnClose); // 窗口关闭时自动清理内存
+        // ================= 这里是修改的重点 =================
+        // 构造一个具有最高权限的 Admin 用户
+        User adminUser;
+        adminUser.isAdmin = true;
+        adminUser.canView = true;
+        adminUser.canEdit = true;
+        adminUser.canDelete = true;
 
-        // 4. 当图谱工作台关闭时，重新显示后台管理仪表盘
+        // 传入 adminUser 作为第三个参数！
+        MainWindow* w = new MainWindow(ontoId, ontoName, adminUser);
+        // =================================================
+
+        w->setAttribute(Qt::WA_DeleteOnClose);
+
         connect(w, &MainWindow::destroyed, this, [this]() {
             this->show();
-            // 重新开启默认的退出逻辑，保证点击仪表盘的“退出系统”时能正常结束进程
             QApplication::setQuitOnLastWindowClosed(true);
         });
 
@@ -179,20 +191,17 @@ void UserManagementDialog::loadUsers() {
 
     for (int i = 0; i < users.size(); ++i) {
         m_table->insertRow(i);
-
-        QTableWidgetItem* idItem = new QTableWidgetItem(QString::number(users[i].id));
-        idItem->setTextAlignment(Qt::AlignCenter);
-        m_table->setItem(i, 0, idItem);
-
+        m_table->setItem(i, 0, new QTableWidgetItem(QString::number(users[i].id)));
         m_table->setItem(i, 1, new QTableWidgetItem(users[i].username));
-
-        QTableWidgetItem *roleItem = new QTableWidgetItem(users[i].isAdmin ? "管理员" : "普通用户");
-        if (users[i].isAdmin) {
-            roleItem->setForeground(QColor("#88C0D0"));
-            roleItem->setFont(QFont("Microsoft YaHei", 10, QFont::Bold));
-        }
-        m_table->setItem(i, 2, roleItem);
+        m_table->setItem(i, 2, new QTableWidgetItem(users[i].isAdmin ? "管理员" : "普通用户"));
         m_table->setItem(i, 3, new QTableWidgetItem(users[i].password));
+
+        // 渲染权限展示
+        QString perms = QString("%1 / %2 / %3")
+                            .arg(users[i].canView ? "查" : "-")
+                            .arg(users[i].canEdit ? "改" : "-")
+                            .arg(users[i].canDelete ? "删" : "-");
+        m_table->setItem(i, 4, new QTableWidgetItem(perms));
     }
 }
 
@@ -287,4 +296,55 @@ void UserManagementDialog::onDeleteUserClicked() {
             QMessageBox::warning(this, "失败", "删除用户失败！");
         }
     }
+}
+
+void UserManagementDialog::onAssignPermissionsClicked() {
+    int row = m_table->currentRow();
+    if (row < 0) {
+        QMessageBox::warning(this, "提示", "请先在表格中选中一个用户！");
+        return;
+    }
+
+    int userId = m_table->item(row, 0)->text().toInt();
+    QString userName = m_table->item(row, 1)->text();
+    bool isAdmin = m_table->item(row, 2)->text() == "管理员";
+
+    if (isAdmin) {
+        QMessageBox::information(this, "提示", "管理员默认拥有所有权限，无需分配！");
+        return;
+    }
+
+    QDialog permDialog(this);
+    permDialog.setWindowTitle("分配权限 - " + userName);
+    permDialog.setStyleSheet(this->styleSheet());
+    QVBoxLayout *layout = new QVBoxLayout(&permDialog);
+
+    QCheckBox *chkView = new QCheckBox("允许查看 (View)", &permDialog);
+    QCheckBox *chkEdit = new QCheckBox("允许修改 (Edit - 添加/编辑节点和关系)", &permDialog);
+    QCheckBox *chkDelete = new QCheckBox("允许删除 (Delete - 删除节点和关系)", &permDialog);
+
+    // 回显当前权限
+    QString currentPerms = m_table->item(row, 4)->text();
+    chkView->setChecked(currentPerms.contains("查"));
+    chkEdit->setChecked(currentPerms.contains("改"));
+    chkDelete->setChecked(currentPerms.contains("删"));
+
+    layout->addWidget(chkView);
+    layout->addWidget(chkEdit);
+    layout->addWidget(chkDelete);
+
+    QPushButton *btnOk = new QPushButton("保存权限", &permDialog);
+    layout->addWidget(btnOk);
+
+    connect(btnOk, &QPushButton::clicked, [&]() {
+        if (UserRepository::updatePermissions(userId, chkView->isChecked(), chkEdit->isChecked(), chkDelete->isChecked())) {
+            QMessageBox::information(&permDialog, "成功", "权限分配成功！");
+            loadUsers();
+            permDialog.accept();
+        } else {
+            QMessageBox::warning(&permDialog, "失败", "权限分配失败！");
+        }
+    });
+
+    permDialog.exec();
 }

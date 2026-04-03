@@ -14,6 +14,8 @@ public:
     static bool addUser(const QString& username, const QString& password, bool isAdmin);
     static bool deleteUser(int id);
     static bool resetPassword(int id, const QString& newPassword);
+    // 在 public 下新增一个方法声明
+    static bool updatePermissions(int id, bool canView, bool canEdit, bool canDelete);
 };
 
 #endif // USERREPOSITORY_H

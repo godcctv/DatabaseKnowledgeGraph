@@ -9,6 +9,9 @@ public:
     QString username;
     QString password;
     bool isAdmin;
+    bool canView;
+    bool canEdit;
+    bool canDelete;
 
     User() : id(-1), isAdmin(false) {}
     bool isValid() const { return id > 0; }
