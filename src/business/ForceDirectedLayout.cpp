@@ -13,7 +13,6 @@ ForceDirectedLayout::ForceDirectedLayout(QObject *parent) : QObject(parent) {
     m_idealLength = 120.0;
     m_centerAttraction = 0.04;
     m_maxVelocity = 30.0;
-    m_orbitSpeed = 1.0;
 }
 
 void ForceDirectedLayout::addNode(VisualNode* node) {
@@ -95,43 +94,8 @@ void ForceDirectedLayout::calculate() {
         m_displacements[v] += displacement.toPointF();
     }
 
-    for (VisualNode* u : m_nodes) {
-        VisualNode* maxMassNeighbor = nullptr;
-        int maxMass = -1;
 
-        // 寻找相连的、质量最大的邻居节点
-        for (VisualEdge* edge : m_edges) {
-            VisualNode* neighbor = nullptr;
-            if (edge->getSourceNode() == u) {
-                neighbor = edge->getDestNode();
-            } else if (edge->getDestNode() == u) {
-                neighbor = edge->getSourceNode();
-            }
-
-            if (neighbor) {
-                int neighborMass = neighbor->getMass();
-                if (neighborMass > maxMass) {
-                    maxMass = neighborMass;
-                    maxMassNeighbor = neighbor;
-                }
-            }
-        }
-
-        // 引力捕获并公转
-        if (maxMassNeighbor && maxMass > u->getMass()) {
-            QVector2D vec(u->pos() - maxMassNeighbor->pos());
-            double dist = vec.length();
-            if (dist > 1.0) {
-                QVector2D tangent(-vec.y(), vec.x());
-                tangent.normalize();
-
-                // 使用动态参数
-                m_displacements[u] += (tangent * m_orbitSpeed).toPointF();
-            }
-        }
-    }
-
-    // 4. 应用位移
+    //应用位移
     QPointF center(0, 0);
     for (VisualNode* node : m_nodes) {
         // 如果用户正在拖拽，不要更新位置

@@ -915,12 +915,7 @@ void MainWindow::createControlPanel() {
     mainLayout->addWidget(createSliderRow(container, "空间阻力:", 50, 99,
         static_cast<int>(m_layout->getDamping() * 100), "%",
         [this](int val){ if(m_layout) m_layout->setDamping(val / 100.0); }));
-
-    // --- 公转速度 (Orbit Speed) ---
-    mainLayout->addWidget(createSliderRow(container, "公转速度:", 0, 50,
-        static_cast<int>(m_layout->getOrbitSpeed() * 10), "",
-        [this](int val){ if(m_layout) m_layout->setOrbitSpeed(val / 10.0); }));
-
+    
     // 底部弹簧
     mainLayout->addStretch();
 
