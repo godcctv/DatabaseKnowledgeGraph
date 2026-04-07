@@ -25,6 +25,7 @@ set(SOURCES
         ui/ProjectSelectionDialog.cpp
         ui/logindialog.cpp
         ui/usermanagementdialog.cpp
+        ui/DashboardDialog.cpp
 )
 
 set(HEADERS
@@ -58,6 +59,7 @@ set(HEADERS
         ui/ProjectSelectionDialog.h
         ui/logindialog.h
         ui/usermanagementdialog.h
+        ui/DashboardDialog.h
 )
 
 set(FORMS
@@ -79,6 +81,8 @@ set(FORMS
         ui/logindialog.cpp
         ui/usermanagementdialog.h
         ui/usermanagementdialog.cpp
+        ui/DashboardDialog.h
+        ui/DashboardDialog.cpp
 
 )
 

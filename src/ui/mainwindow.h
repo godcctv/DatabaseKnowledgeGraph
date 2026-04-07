@@ -73,6 +73,7 @@ private slots:
     void onRelationshipUpdated(const GraphEdge& edge);
     void onActionExportTriggered(); // 批量导出
     void onActionImportTriggered(); // 批量导入
+    void onOpenDashboard();
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;

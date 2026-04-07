@@ -5,6 +5,7 @@
 #include "VisualNode.h"
 #include "VisualEdge.h"
 #include "QueryDialog.h"
+#include "DashboardDialog.h"
 #include "../database/OntologyRepository.h"
 #include "../database/RelationshipRepository.h"
 #include "../business/ForceDirectedLayout.h"  // 确保路径正确
@@ -593,6 +594,11 @@ void MainWindow::setupToolbar() {
     if (!toolbar) toolbar = addToolBar("Query");
 
     toolbar->addSeparator();
+    QAction* actDashboard = toolbar->addAction("数据仪表盘");
+    actDashboard->setToolTip("查看当前图谱的数据统计与分析");
+    connect(actDashboard, &QAction::triggered, this, &MainWindow::onOpenDashboard);
+
+    toolbar->addSeparator();
 
     QAction* actFull = toolbar->addAction("全图");
     connect(actFull, &QAction::triggered, this, &MainWindow::onQueryFullGraph);
@@ -1175,4 +1181,9 @@ void MainWindow::onActionImportTriggered() {
 
     QMessageBox::information(this, "导入完成",
         QString("成功导入:\n%1 个节点\n%2 条连线").arg(importedNodes).arg(importedEdges));
+}
+
+void MainWindow::onOpenDashboard() {
+    DashboardDialog dialog(m_currentOntologyId, m_queryEngine, this);
+    dialog.exec();
 }
