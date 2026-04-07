@@ -204,9 +204,10 @@ void MainWindow::setupConnections() {
     connect(m_graphEditor, &GraphEditor::relationshipDeleted, this, &MainWindow::onRelationshipDeleted);
     connect(m_graphEditor, &GraphEditor::nodeUpdated, this, &MainWindow::onNodeUpdated);
     connect(m_graphEditor, &GraphEditor::relationshipUpdated, this, &MainWindow::onRelationshipUpdated);
-    //绑定导入导出菜单
-    connect(ui->action_O, &QAction::triggered, this, &MainWindow::onActionImportTriggered);
-    connect(ui->action_S, &QAction::triggered, this, &MainWindow::onActionExportTriggered);
+
+    // 绑定新的批量导入和导出动作
+    connect(ui->actionImportData, &QAction::triggered, this, &MainWindow::onActionImportTriggered);
+    connect(ui->actionExportData, &QAction::triggered, this, &MainWindow::onActionExportTriggered);
 }
 
 void MainWindow::onActionAddNodeTriggered() {
