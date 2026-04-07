@@ -5,8 +5,12 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QStyleFactory>
+#include <QRandomGenerator>
 #include "database/DatabaseConnection.h"
 #include "database/OntologyRepository.h"
+#include "database/NodeRepository.h"         // 新增
+#include "database/RelationshipRepository.h" // 新增
+
 #include "ui/mainwindow.h"
 #include "ui/ProjectSelectionDialog.h"
 #include "ui/logindialog.h"
@@ -66,6 +70,66 @@ QString loadStyleSheet() {
     )";
 }
 
+void generateTestData(int ontologyId) {
+    // 保护机制：如果当前图谱已经有超过 50 个节点，说明已经有数据了，直接跳过，防止重复插入
+    if (NodeRepository::getAllNodes(ontologyId).size() > 50) {
+        qDebug() << "检测到已存在大量数据，跳过测试数据生成。";
+        return;
+    }
+
+    qDebug() << "开始生成测试数据...";
+    QList<int> nodeIds;
+    QStringList types = {"核心概念", "实体", "算法模型", "属性", "应用场景"};
+    QStringList relTypes = {"包含", "依赖于", "属于", "优化了", "关联"};
+
+    // 1. 生成 200 个随机节点
+    for (int i = 0; i < 200; ++i) {
+        GraphNode node;
+        node.ontologyId = ontologyId;
+        node.name = QString("TestNode_%1").arg(i + 1);
+        node.nodeType = types[QRandomGenerator::global()->bounded(types.size())];
+        node.description = "自动生成的压力测试节点数据";
+
+        // 随机散布在画板中，给力导向算法提供初始分布
+        node.posX = QRandomGenerator::global()->bounded(2000) - 1000;
+        node.posY = QRandomGenerator::global()->bounded(1600) - 800;
+
+        // 使用数据库层直接插入
+        if (NodeRepository::addNode(node)) {
+            nodeIds.append(node.id);
+        }
+    }
+
+    // 2. 生成 400 条随机关系 (平均每个节点两条连线)
+    int edgeCount = 0;
+    for (int i = 0; i < 400; ++i) {
+        if (nodeIds.size() < 2) break;
+
+        int srcIdx = QRandomGenerator::global()->bounded(nodeIds.size());
+        int dstIdx = QRandomGenerator::global()->bounded(nodeIds.size());
+
+        // 避免自环（自己连自己）
+        if (srcIdx == dstIdx) continue;
+
+        GraphEdge edge;
+        edge.ontologyId = ontologyId;
+        edge.sourceId = nodeIds[srcIdx];
+        edge.targetId = nodeIds[dstIdx];
+        edge.relationType = relTypes[QRandomGenerator::global()->bounded(relTypes.size())];
+        edge.weight = 1.0;
+
+        if (RelationshipRepository::addRelationship(edge)) {
+            edgeCount++;
+        }
+    }
+
+    qDebug() << "========================================";
+    qDebug() << "测试数据生成完毕！";
+    qDebug() << "成功生成节点数：" << nodeIds.size();
+    qDebug() << "成功生成关系数：" << edgeCount;
+    qDebug() << "========================================";
+}
+
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
     a.setStyle(QStyleFactory::create("Fusion"));
@@ -107,6 +171,8 @@ int main(int argc, char *argv[]) {
             int ontoId = selectDialog.getSelectedOntologyId();
             QString ontoName = selectDialog.getSelectedOntologyName();
 
+            //generateTestData(ontoId);//用于测试
+            
             // 把 currentUser 传给 MainWindow
             MainWindow w(ontoId, ontoName, currentUser);
             w.show();
