@@ -88,26 +88,6 @@
                 <string>添加关系</string>
             </property>
         </action>
-        <action name="action_4">
-            <property name="text">
-                <string>撤销</string>
-            </property>
-        </action>
-        <action name="action_5">
-            <property name="text">
-                <string>重做</string>
-            </property>
-        </action>
-        <action name="action_6">
-            <property name="text">
-                <string>撤销</string>
-            </property>
-        </action>
-        <action name="action_7">
-            <property name="text">
-                <string>重做</string>
-            </property>
-        </action>
         <action name="actionDelete">
             <property name="text">
                 <string>删除节点</string>

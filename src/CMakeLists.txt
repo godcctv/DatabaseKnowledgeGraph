@@ -31,7 +31,6 @@ set(HEADERS
         # 业务逻辑头文件
         business/GraphEditor.h
         business/QueryEngine.h
-        business/EditorCommand.h
         business/ForceDirectedLayout.h
 
         # 模型头文件
