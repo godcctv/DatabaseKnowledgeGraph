@@ -594,7 +594,7 @@ void MainWindow::setupToolbar() {
     if (!toolbar) toolbar = addToolBar("Query");
 
     toolbar->addSeparator();
-    QAction* actDashboard = toolbar->addAction("数据仪表盘");
+    QAction* actDashboard = toolbar->addAction("可视数据");
     actDashboard->setToolTip("查看当前图谱的数据统计与分析");
     connect(actDashboard, &QAction::triggered, this, &MainWindow::onOpenDashboard);
 
