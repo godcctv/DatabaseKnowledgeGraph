@@ -22,7 +22,8 @@ private slots:
     void onOpenProject();
     void onItemDoubleClicked(QListWidgetItem* item);
 
-    // 移除了动画槽函数
+    void onImportProject();
+    void onExportProject();
 
 private:
     void setupUI();
@@ -32,6 +33,8 @@ private:
     QPushButton* m_btnOpen;
     QPushButton* m_btnCreate;
     QPushButton* m_btnDelete;
+    QPushButton* m_btnImport;
+    QPushButton* m_btnExport;
 
     // 移除了动画相关组件 (overlay, timers, etc.)
 
