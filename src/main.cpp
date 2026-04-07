@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
             QString ontoName = selectDialog.getSelectedOntologyName();
 
             //generateTestData(ontoId);//用于测试
-            
+
             // 把 currentUser 传给 MainWindow
             MainWindow w(ontoId, ontoName, currentUser);
             w.show();
