@@ -6,6 +6,11 @@
 #include <QEvent>
 #include <QPointF>
 #include <QDockWidget>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QFile>
+#include <QFileDialog>
 #include "../business/GraphEditor.h" // 引入业务层
 #include "../model/User.h"
 
@@ -66,6 +71,8 @@ private slots:
     void onSwitchOntology(int ontologyId, QString name);
     void onNodeUpdated(const GraphNode& node);
     void onRelationshipUpdated(const GraphEdge& edge);
+    void onActionExportTriggered(); // 批量导出
+    void onActionImportTriggered(); // 批量导入
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;
