@@ -74,6 +74,7 @@ LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent) {
 
     connect(m_btnLogin, &QPushButton::clicked, this, &LoginDialog::onLoginClicked);
     connect(m_btnExit, &QPushButton::clicked, this, &QDialog::reject);
+    connect(m_btnRegister, &QPushButton::clicked, this, &LoginDialog::onRegisterClicked);
 }
 
 void LoginDialog::onLoginClicked() {
