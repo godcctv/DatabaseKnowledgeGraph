@@ -6,9 +6,10 @@
 #include "VisualEdge.h"
 #include "QueryDialog.h"
 #include "DashboardDialog.h"
+#include "aitextimportdialog.h"
 #include "../database/OntologyRepository.h"
 #include "../database/RelationshipRepository.h"
-#include "../business/ForceDirectedLayout.h"  // 确保路径正确
+#include "../business/ForceDirectedLayout.h"
 #include "../database/DatabaseConnection.h"
 #include "../business/GraphEditor.h"
 #include "../business/QueryEngine.h"
@@ -193,7 +194,8 @@ void MainWindow::loadInitialData() {
 void MainWindow::setupConnections() {
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::onActionAddNodeTriggered);
     connect(ui->actionDelete, &QAction::triggered, this, &MainWindow::onActionDeleteTriggered);
-
+    QAction* actionAIImport = ui->menu_E->addAction("智能文本导入");
+    connect(actionAIImport, &QAction::triggered, this, &MainWindow::onActionAIImportTriggered);
     // 节点相关信号
     connect(m_graphEditor, &GraphEditor::nodeAdded, this, &MainWindow::onNodeAdded);
     connect(m_graphEditor, &GraphEditor::graphChanged, this, &MainWindow::onGraphChanged);
@@ -1026,4 +1028,75 @@ void MainWindow::showNodeDetails(int nodeId) {
 void MainWindow::onOpenDashboard() {
     DashboardDialog dialog(m_currentOntologyId, m_queryEngine, this);
     dialog.exec();
+}
+
+void MainWindow::onActionAIImportTriggered() {
+    if (!m_currentUser.isAdmin && !m_currentUser.canEdit) {
+        QMessageBox::warning(this, "权限不足", "您没有修改图谱数据的权限！");
+        return;
+    }
+
+    AITextImportDialog dialog(this);
+    // 连接 AI 数据提取成功的信号
+    connect(&dialog, &AITextImportDialog::dataExtracted, this, &MainWindow::handleAIExtractedData);
+    dialog.exec();
+}
+
+void MainWindow::handleAIExtractedData(QJsonArray aiNodes, QJsonArray aiEdges) {
+    // 1. 获取当前项目的所有现有节点，防止重复插入
+    QList<GraphNode> existingNodes = m_queryEngine->getAllNodes(m_currentOntologyId);
+    QMap<QString, int> nameToIdMap;
+    for (const auto& n : existingNodes) {
+        nameToIdMap[n.name] = n.id;
+    }
+
+    // 2. 导入新节点
+    int newNodesCount = 0;
+    for (int i = 0; i < aiNodes.size(); ++i) {
+        QJsonObject nObj = aiNodes[i].toObject();
+        QString name = nObj["name"].toString();
+        if (name.isEmpty()) continue;
+
+        if (!nameToIdMap.contains(name)) {
+            GraphNode newNode;
+            newNode.ontologyId = m_currentOntologyId;
+            newNode.name = name;
+            newNode.nodeType = nObj["nodeType"].toString("自动提取概念");
+            newNode.description = nObj["description"].toString();
+            // 在屏幕中心附近随机散布
+            newNode.posX = QRandomGenerator::global()->bounded(400) - 200;
+            newNode.posY = QRandomGenerator::global()->bounded(400) - 200;
+
+            if (m_graphEditor->addNode(newNode)) {
+                nameToIdMap[name] = newNode.id; // 记录数据库生成的真实 ID
+                newNodesCount++;
+            }
+        }
+    }
+
+    // 3. 导入新连线
+    int newEdgesCount = 0;
+    for (int i = 0; i < aiEdges.size(); ++i) {
+        QJsonObject eObj = aiEdges[i].toObject();
+        QString srcName = eObj["sourceName"].toString();
+        QString tgtName = eObj["targetName"].toString();
+        QString relType = eObj["relationType"].toString("关联");
+
+        // 必须起点和终点都在图谱中存在，才能连线
+        if (nameToIdMap.contains(srcName) && nameToIdMap.contains(tgtName)) {
+            GraphEdge newEdge;
+            newEdge.ontologyId = m_currentOntologyId;
+            newEdge.sourceId = nameToIdMap[srcName];
+            newEdge.targetId = nameToIdMap[tgtName];
+            newEdge.relationType = relType;
+
+            if (m_graphEditor->addRelationship(newEdge)) {
+                newEdgesCount++;
+            }
+        }
+    }
+
+    // 4. 刷新全图，力导向算法会自动把这些新节点炸开排好
+    onQueryFullGraph();
+    ui->statusbar->showMessage(QString("AI 导入完成：新增 %1 个节点，%2 条关系").arg(newNodesCount).arg(newEdgesCount), 5000);
 }

@@ -11,6 +11,7 @@
 #include <QJsonDocument>
 #include <QFile>
 #include <QFileDialog>
+#include <QJsonArray>
 #include "../business/GraphEditor.h" // 引入业务层
 #include "../model/User.h"
 
@@ -72,6 +73,8 @@ private slots:
     void onNodeUpdated(const GraphNode& node);
     void onRelationshipUpdated(const GraphEdge& edge);
     void onOpenDashboard();
+    void onActionAIImportTriggered();
+    void handleAIExtractedData(QJsonArray aiNodes, QJsonArray aiEdges);
 private:
     Ui::MainWindow *ui;
     GraphEditor *m_graphEditor;

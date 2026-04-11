@@ -11,7 +11,7 @@ set(CMAKE_AUTORCC ON)  # 自动处理资源文件
 set(CMAKE_AUTOUIC ON)  # 自动处理 .ui 界面文件
 
 # 3. 寻找依赖库：必须包含 Sql 模块来操作 MySQL
-find_package(Qt5 COMPONENTS Core Gui Widgets Sql REQUIRED)
+find_package(Qt5 COMPONENTS Core Gui Widgets Sql Network REQUIRED)
 
 # 4. 全局包含路径，方便你以后写 #include "model/GraphNode.h" 而不是相对路径
 include_directories(src)

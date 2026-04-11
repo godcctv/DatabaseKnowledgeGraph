@@ -26,6 +26,7 @@ set(SOURCES
         ui/logindialog.cpp
         ui/usermanagementdialog.cpp
         ui/DashboardDialog.cpp
+        ui/aitextimportdialog.cpp
 )
 
 set(HEADERS
@@ -60,6 +61,7 @@ set(HEADERS
         ui/logindialog.h
         ui/usermanagementdialog.h
         ui/DashboardDialog.h
+        ui/aitextimportdialog.h
 )
 
 set(FORMS
@@ -83,6 +85,8 @@ set(FORMS
         ui/usermanagementdialog.cpp
         ui/DashboardDialog.h
         ui/DashboardDialog.cpp
+        ui/aitextimportdialog.h
+        ui/aitextimportdialog.cpp
 
 )
 
@@ -95,4 +99,5 @@ target_link_libraries(DatabaseKnowledgeGraph PRIVATE
         Qt5::Gui
         Qt5::Widgets
         Qt5::Sql
+        Qt5::Network
 )

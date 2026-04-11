@@ -24,18 +24,18 @@ AddNodeDialog::AddNodeDialog(QWidget *parent) :
     ui->typeCombo->clear();
     ui->typeCombo->setEditable(true);
 
-    // 3. 读取本地保存的类型预设并【去重】
+    // 3. 读取本地保存的类型预设
     QSettings settings("KnowledgeGraphSystem", "Presets");
     QStringList defaultTypes = {"概念", "实体", "方法"};
     QStringList savedTypes = settings.value("NodeTypes", defaultTypes).toStringList();
-    savedTypes.removeDuplicates(); // 核心修复：清理本地可能已存在的重复项
+    savedTypes.removeDuplicates();
     ui->typeCombo->addItems(savedTypes);
 
     // 4. 新建描述输入框
     descEdit = new QTextEdit(this);
     descEdit->setMaximumHeight(80);
 
-    // 5. 重构界面布局 (核心修复：把控件真正装进 Layout 里)
+    // 5. 重构界面布局
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(25, 25, 25, 20);
     mainLayout->setSpacing(15);
