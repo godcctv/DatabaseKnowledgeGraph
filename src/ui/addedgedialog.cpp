@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QFrame>
+#include <QSettings>
 AddEdgeDialog::AddEdgeDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::AddEdgeDialog)
@@ -13,7 +14,11 @@ AddEdgeDialog::AddEdgeDialog(QWidget *parent) :
 
     ui->label->hide();
 
-    ui->typeCombo->addItems({"包含", "关联", "依赖", "子类"});
+    // 使用 QSettings 读取本地保存的连线类型预设
+    QSettings settings("KnowledgeGraphSystem", "Presets");
+    QStringList defaultTypes = {"包含", "关联", "依赖", "子类"}; // 初始的 4 个默认值
+    QStringList savedTypes = settings.value("EdgeTypes", defaultTypes).toStringList();
+    ui->typeCombo->addItems(savedTypes);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(25, 20, 25, 20);
@@ -92,10 +97,22 @@ GraphEdge AddEdgeDialog::getEdgeData() const {
 }
 
 void AddEdgeDialog::on_btnOk_clicked() {
-    if(ui->typeCombo->currentText().isEmpty()) {
+    QString currentType = ui->typeCombo->currentText().trimmed();
+
+    if(currentType.isEmpty()) {
         QMessageBox::warning(this, "提示", "必须选择或输入关系类型");
         return;
     }
+
+    QSettings settings("KnowledgeGraphSystem", "Presets");
+    QStringList defaultTypes = {"包含", "关联", "依赖", "子类"};
+    QStringList savedTypes = settings.value("EdgeTypes", defaultTypes).toStringList();
+
+    if (!savedTypes.contains(currentType)) {
+        savedTypes.append(currentType);
+        settings.setValue("EdgeTypes", savedTypes);
+    }
+
     accept();
 }
 

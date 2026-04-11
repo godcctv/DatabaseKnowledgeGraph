@@ -737,7 +737,7 @@ void MainWindow::onQuerySingleNode() {
             currentIdx++;
         }
     }
-    
+
     for (const auto& edge : relatedEdges) {
         VisualNode* src = qgraphicsitem_cast<VisualNode*>(findItemById(edge.sourceId));
         VisualNode* dst = qgraphicsitem_cast<VisualNode*>(findItemById(edge.targetId));

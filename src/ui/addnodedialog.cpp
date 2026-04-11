@@ -8,7 +8,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
-
+#include <QSettings>
 
 AddNodeDialog::AddNodeDialog(QWidget *parent) :
     QDialog(parent),
@@ -34,9 +34,13 @@ AddNodeDialog::AddNodeDialog(QWidget *parent) :
     QFormLayout *formLayout = new QFormLayout();
     formLayout->setSpacing(15);
     formLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    formLayout->addRow("名称 :", ui->nameEdit);
-    formLayout->addRow("类型 :", ui->typeCombo);
-    formLayout->addRow("描述 :", descEdit);
+    // 开启下拉框的文本输入功能，允许用户手动输入新类型
+    ui->typeCombo->setEditable(true);
+
+    QSettings settings("KnowledgeGraphSystem", "Presets");
+    QStringList defaultTypes = {"概念", "实体", "方法"};
+    QStringList savedTypes = settings.value("NodeTypes", defaultTypes).toStringList();
+    ui->typeCombo->addItems(savedTypes);
 
     QHBoxLayout *btnLayout = new QHBoxLayout();
     btnLayout->addStretch();
@@ -88,12 +92,28 @@ GraphNode AddNodeDialog::getNodeData() const {
 }
 
 void AddNodeDialog::on_btnOk_clicked() {
-    // 简单校验
+
     if(ui->nameEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "提示", "节点名称不能为空！");
         return;
     }
-    accept(); // 关闭对话框并返回 QDialog::Accepted
+
+    QString currentType = ui->typeCombo->currentText().trimmed();
+    if(currentType.isEmpty()) {
+        QMessageBox::warning(this, "提示", "节点类型不能为空！");
+        return;
+    }
+
+    QSettings settings("KnowledgeGraphSystem", "Presets");
+    QStringList defaultTypes = {"概念", "实体", "方法"};
+    QStringList savedTypes = settings.value("NodeTypes", defaultTypes).toStringList();
+
+    if (!savedTypes.contains(currentType)) {
+        savedTypes.append(currentType);
+        settings.setValue("NodeTypes", savedTypes);
+    }
+
+    accept();
 }
 
 void AddNodeDialog::on_btnCancel_clicked() {
