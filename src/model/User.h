@@ -12,8 +12,9 @@ public:
     bool canView;
     bool canEdit;
     bool canDelete;
+    QString status;
 
-    User() : id(-1), isAdmin(false) {}
+    User() : id(-1), isAdmin(false) ,status("PENDING"){}
     bool isValid() const { return id > 0; }
 };
 

@@ -40,13 +40,18 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     logoLabel->setAlignment(Qt::AlignCenter);
     sidebarLayout->addWidget(logoLabel);
 
-    QPushButton *btnUserMgmt = new QPushButton("👥 后台用户管理", sidebar);
+    QPushButton *btnUserMgmt = new QPushButton("后台用户管理", sidebar);
     btnUserMgmt->setObjectName("SidebarBtnActive"); // 默认处于选中状态
 
-    QPushButton *btnWorkspace = new QPushButton("🌌 进入图谱工作台", sidebar);
+    QPushButton *btnReview = new QPushButton("注册审核", sidebar);
+    btnReview->setObjectName("SidebarBtn");
+    sidebarLayout->insertWidget(1, btnReview);
+
+
+    QPushButton *btnWorkspace = new QPushButton("进入图谱工作台", sidebar);
     btnWorkspace->setObjectName("SidebarBtn");
 
-    QPushButton *btnExit = new QPushButton("🚪 退出系统", sidebar);
+    QPushButton *btnExit = new QPushButton("退出系统", sidebar);
     btnExit->setObjectName("SidebarBtnExit");
 
     sidebarLayout->addWidget(btnUserMgmt);
@@ -54,8 +59,7 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     sidebarLayout->addStretch();
     sidebarLayout->addWidget(btnExit);
 
-    // ================= 2. 右侧内容区 =================
-    // 使用 StackedWidget 方便你以后扩展更多后台页面（如系统日志、权限分配）
+
     QStackedWidget *stackedWidget = new QStackedWidget(this);
 
     // --- 页面 A: 用户管理面板 ---
@@ -95,12 +99,39 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
 
     pageLayout->addLayout(btnLayout);
     stackedWidget->addWidget(userMgmtPage);
+    QWidget *reviewPage = new QWidget();
+    QVBoxLayout *reviewLayout = new QVBoxLayout(reviewPage);
+    reviewLayout->setContentsMargins(30, 30, 30, 30);
+    reviewLayout->setSpacing(20);
 
-    // 组装主布局
+    QLabel* titleReview = new QLabel("新 用 户 注 册 审 核", reviewPage);
+    titleReview->setAlignment(Qt::AlignCenter);
+    titleReview->setStyleSheet("color: #EBCB8B; font-size: 24px; font-weight: bold; letter-spacing: 2px; border-bottom: 1px solid #4C566A; padding-bottom: 15px;");
+    reviewLayout->addWidget(titleReview);
+
+    m_pendingTable = new QTableWidget(reviewPage);
+    m_pendingTable->setColumnCount(2);
+    m_pendingTable->setHorizontalHeaderLabels({"用户 ID", "申请用户名"});
+    m_pendingTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    m_pendingTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_pendingTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_pendingTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    reviewLayout->addWidget(m_pendingTable);
+
+    QHBoxLayout *reviewBtnLayout = new QHBoxLayout();
+    m_btnApprove = new QPushButton("通过", reviewPage);
+    m_btnReject = new QPushButton("拒绝", reviewPage);
+    m_btnReject->setObjectName("BtnDanger");
+    reviewBtnLayout->addStretch();
+    reviewBtnLayout->addWidget(m_btnApprove);
+    reviewBtnLayout->addWidget(m_btnReject);
+    reviewLayout->addLayout(reviewBtnLayout);
+
+    stackedWidget->addWidget(reviewPage);
+
     mainLayout->addWidget(sidebar);
     mainLayout->addWidget(stackedWidget);
 
-    // ================= 3. 仪表盘全局样式 (Nord风) =================
     this->setStyleSheet(R"(
         QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
         QFrame#Sidebar { background-color: #3B4252; border-right: 1px solid #4C566A; }
@@ -135,20 +166,16 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
         QPushButton#BtnDanger:hover { background-color: #BF616A; color: #ECEFF4; }
     )");
 
-    // ================= 4. 信号槽连接 =================
     connect(m_btnAdd, &QPushButton::clicked, this, &UserManagementDialog::onAddUserClicked);
     connect(m_btnReset, &QPushButton::clicked, this, &UserManagementDialog::onResetPasswordClicked);
     connect(m_btnDelete, &QPushButton::clicked, this, &UserManagementDialog::onDeleteUserClicked);
-
-    // 仪表盘侧边栏按钮交互
     connect(btnWorkspace, &QPushButton::clicked, this, &UserManagementDialog::onEnterGraphWorkspace);
     connect(btnExit, &QPushButton::clicked, this, &QDialog::accept);
 
     loadUsers();
 }
 
-// ================= 进入业务图谱前台的逻辑 =================
-// src/ui/usermanagementdialog.cpp
+
 void UserManagementDialog::onEnterGraphWorkspace() {
     // 1. 弹出项目选择框
     ProjectSelectionDialog selectDialog(this);
@@ -161,8 +188,6 @@ void UserManagementDialog::onEnterGraphWorkspace() {
         // 2. 隐藏当前的后台管理仪表盘
         this->hide();
 
-        // ================= 这里是修改的重点 =================
-        // 构造一个具有最高权限的 Admin 用户
         User adminUser;
         adminUser.isAdmin = true;
         adminUser.canView = true;
@@ -171,7 +196,6 @@ void UserManagementDialog::onEnterGraphWorkspace() {
 
         // 传入 adminUser 作为第三个参数！
         MainWindow* w = new MainWindow(ontoId, ontoName, adminUser);
-        // =================================================
 
         w->setAttribute(Qt::WA_DeleteOnClose);
 
@@ -183,7 +207,7 @@ void UserManagementDialog::onEnterGraphWorkspace() {
         w->show();
     }
 }
-// ---------------- 以下为原有的后台用户 CRUD 操作 ----------------
+
 
 void UserManagementDialog::loadUsers() {
     m_table->setRowCount(0);

@@ -89,7 +89,16 @@ void LoginDialog::onLoginClicked() {
     m_currentUser = UserRepository::login(username, password);
 
     if (m_currentUser.isValid()) {
-        accept(); // 登录成功，关闭窗口并返回 Accepted
+        if (m_currentUser.status == "PENDING") {
+            QMessageBox::warning(this, "审核中", "您的账号正在审核中，请耐心等待管理员通过！");
+            m_currentUser = User();
+            return;
+        } else if (m_currentUser.status == "REJECTED") {
+            QMessageBox::critical(this, "审核拒绝", "您的注册请求已被拒绝！");
+            m_currentUser = User();
+            return;
+        }
+        accept();
     } else {
         QMessageBox::critical(this, "登录失败", "账号或密码错误！");
     }
@@ -122,7 +131,7 @@ void LoginDialog::onRegisterClicked() {
             return;
         }
         if (UserRepository::registerUser(name, pwd)) {
-            QMessageBox::information(&regDialog, "成功", "注册成功！请使用新账号登录。");
+            QMessageBox::information(&regDialog, "提交成功", "注册申请已提交！请等待管理员审核。");
             m_usernameEdit->setText(name);
             m_passwordEdit->clear();
             regDialog.accept();

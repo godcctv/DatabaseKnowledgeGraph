@@ -18,12 +18,18 @@ private slots:
     void onDeleteUserClicked();
     void onEnterGraphWorkspace();
     void onAssignPermissionsClicked();
+    void loadPendingUsers();
+    void onApproveUserClicked();
+    void onRejectUserClicked();
 private:
     QTableWidget *m_table;
     QPushButton *m_btnAdd;
     QPushButton *m_btnReset;
     QPushButton *m_btnDelete;
     QPushButton *m_btnPermissions;
+    QTableWidget *m_pendingTable;
+    QPushButton *m_btnApprove;
+    QPushButton *m_btnReject;
 };
 
 #endif // USERMANAGEMENTDIALOG_H

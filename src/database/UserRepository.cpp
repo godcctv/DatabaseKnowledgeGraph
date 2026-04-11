@@ -9,7 +9,8 @@
 bool UserRepository::registerUser(const QString& username, const QString& password) {
     QSqlDatabase db = DatabaseConnection::getDatabase();
     QSqlQuery query(db);
-    query.prepare("INSERT INTO users (username, password, is_admin) VALUES (:username, :password, FALSE)");
+    query.prepare("INSERT INTO users (username, password, is_admin, can_view, can_edit, can_delete, status) "
+                  "VALUES (:username, :password, FALSE, FALSE, FALSE, FALSE, 'PENDING')");
     query.bindValue(":username", username);
     query.bindValue(":password", password);
     return query.exec();
@@ -34,6 +35,7 @@ User UserRepository::login(const QString& username, const QString& password) {
         user.canView = query.value("can_view").toBool();
         user.canEdit = query.value("can_edit").toBool();
         user.canDelete = query.value("can_delete").toBool();
+        user.status = query.value("status").toString();
     }
     return user;
 }
@@ -102,4 +104,31 @@ bool UserRepository::resetPassword(int id, const QString& newPassword) {
     query.bindValue(":password", newPassword);
     query.bindValue(":id", id);
     return query.exec();
+}
+
+QList<User> UserRepository::getPendingUsers() {
+    QList<User> users;
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    QSqlQuery query(db);
+    if (query.exec("SELECT * FROM users WHERE status = 'PENDING' ORDER BY created_at DESC")) {
+        while (query.next()) {
+            User u;
+            u.id = query.value("user_id").toInt();
+            u.username = query.value("username").toString();
+            users.append(u);
+        }
+    }
+    return users;
+}
+
+bool UserRepository::approveUser(int id) {
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    QSqlQuery query(db);
+    query.prepare("UPDATE users SET status = 'APPROVED', can_view = TRUE WHERE user_id = :id");
+    query.bindValue(":id", id);
+    return query.exec();
+}
+
+bool UserRepository::rejectUser(int id) {
+    return deleteUser(id);
 }

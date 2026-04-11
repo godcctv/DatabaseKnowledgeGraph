@@ -16,6 +16,9 @@ public:
     static bool resetPassword(int id, const QString& newPassword);
     // 在 public 下新增一个方法声明
     static bool updatePermissions(int id, bool canView, bool canEdit, bool canDelete);
+    static QList<User> getPendingUsers();
+    static bool approveUser(int id);
+    static bool rejectUser(int id);
 };
 
 #endif // USERREPOSITORY_H
