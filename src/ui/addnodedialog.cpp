@@ -16,17 +16,26 @@ AddNodeDialog::AddNodeDialog(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    // 1. 隐藏 UI 文件中原生绝对定位的 Label，我们将使用 QFormLayout 重新排版
     ui->label->hide();
     ui->label_2->hide();
 
-    // 初始化下拉框类型
-    ui->typeCombo->addItem("概念");
-    ui->typeCombo->addItem("实体");
-    ui->typeCombo->addItem("方法");
+    // 2. 清空下拉框并开启编辑模式
+    ui->typeCombo->clear();
+    ui->typeCombo->setEditable(true);
 
+    // 3. 读取本地保存的类型预设并【去重】
+    QSettings settings("KnowledgeGraphSystem", "Presets");
+    QStringList defaultTypes = {"概念", "实体", "方法"};
+    QStringList savedTypes = settings.value("NodeTypes", defaultTypes).toStringList();
+    savedTypes.removeDuplicates(); // 核心修复：清理本地可能已存在的重复项
+    ui->typeCombo->addItems(savedTypes);
+
+    // 4. 新建描述输入框
     descEdit = new QTextEdit(this);
     descEdit->setMaximumHeight(80);
 
+    // 5. 重构界面布局 (核心修复：把控件真正装进 Layout 里)
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(25, 25, 25, 20);
     mainLayout->setSpacing(15);
@@ -34,13 +43,11 @@ AddNodeDialog::AddNodeDialog(QWidget *parent) :
     QFormLayout *formLayout = new QFormLayout();
     formLayout->setSpacing(15);
     formLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    // 开启下拉框的文本输入功能，允许用户手动输入新类型
-    ui->typeCombo->setEditable(true);
 
-    QSettings settings("KnowledgeGraphSystem", "Presets");
-    QStringList defaultTypes = {"概念", "实体", "方法"};
-    QStringList savedTypes = settings.value("NodeTypes", defaultTypes).toStringList();
-    ui->typeCombo->addItems(savedTypes);
+    // 将输入框加入表单布局，并赋予整齐的标签
+    formLayout->addRow("节点名称 :", ui->nameEdit);
+    formLayout->addRow("节点类型 :", ui->typeCombo);
+    formLayout->addRow("详细描述 :", descEdit);
 
     QHBoxLayout *btnLayout = new QHBoxLayout();
     btnLayout->addStretch();
@@ -52,6 +59,7 @@ AddNodeDialog::AddNodeDialog(QWidget *parent) :
 
     this->resize(320, 260);
 
+    // 美化样式
     this->setStyleSheet(R"(
     QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
     QLabel { color: #D8DEE9; font-weight: bold; font-size: 13px; }
@@ -83,7 +91,7 @@ AddNodeDialog::~AddNodeDialog() {
 GraphNode AddNodeDialog::getNodeData() const {
     GraphNode node;
     node.name = ui->nameEdit->text().trimmed();
-    node.nodeType = ui->typeCombo->currentText();
+    node.nodeType = ui->typeCombo->currentText().trimmed();
     node.description = descEdit->toPlainText().trimmed();
     node.posX = QRandomGenerator::global()->bounded(50, 450);
     node.posY = QRandomGenerator::global()->bounded(50, 350);
@@ -92,7 +100,6 @@ GraphNode AddNodeDialog::getNodeData() const {
 }
 
 void AddNodeDialog::on_btnOk_clicked() {
-
     if(ui->nameEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "提示", "节点名称不能为空！");
         return;
@@ -104,20 +111,22 @@ void AddNodeDialog::on_btnOk_clicked() {
         return;
     }
 
+    // 保存新的节点类型
     QSettings settings("KnowledgeGraphSystem", "Presets");
     QStringList defaultTypes = {"概念", "实体", "方法"};
     QStringList savedTypes = settings.value("NodeTypes", defaultTypes).toStringList();
 
     if (!savedTypes.contains(currentType)) {
         savedTypes.append(currentType);
-        settings.setValue("NodeTypes", savedTypes);
     }
+    savedTypes.removeDuplicates(); // 保存前再次兜底去重
+    settings.setValue("NodeTypes", savedTypes);
 
     accept();
 }
 
 void AddNodeDialog::on_btnCancel_clicked() {
-    reject(); // 关闭对话框并返回 QDialog::Rejected
+    reject();
 }
 
 void AddNodeDialog::setNodeData(const GraphNode& node) {
