@@ -17,6 +17,7 @@
 #include <QStackedWidget>
 #include <QFrame>
 #include <QCheckBox>
+#include <QStyle> // 确保包含了 QStyle 用于刷新 QSS 样式
 
 UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("知识图谱系统 - 管理员仪表盘 (Admin Dashboard)");
@@ -35,7 +36,7 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     sidebarLayout->setContentsMargins(10, 30, 10, 20);
     sidebarLayout->setSpacing(10);
 
-    QLabel *logoLabel = new QLabel("🚀 管理员控制台", sidebar);
+    QLabel *logoLabel = new QLabel("管理员控制台", sidebar);
     logoLabel->setStyleSheet("color: #88C0D0; font-size: 18px; font-weight: bold; margin-bottom: 20px;");
     logoLabel->setAlignment(Qt::AlignCenter);
     sidebarLayout->addWidget(logoLabel);
@@ -45,8 +46,6 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
 
     QPushButton *btnReview = new QPushButton("注册审核", sidebar);
     btnReview->setObjectName("SidebarBtn");
-    sidebarLayout->insertWidget(1, btnReview);
-
 
     QPushButton *btnWorkspace = new QPushButton("进入图谱工作台", sidebar);
     btnWorkspace->setObjectName("SidebarBtn");
@@ -55,11 +54,12 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     btnExit->setObjectName("SidebarBtnExit");
 
     sidebarLayout->addWidget(btnUserMgmt);
+    sidebarLayout->addWidget(btnReview); // 将审核按钮加入侧边栏
     sidebarLayout->addWidget(btnWorkspace);
     sidebarLayout->addStretch();
     sidebarLayout->addWidget(btnExit);
 
-
+    // ================= 2. 右侧多页面堆栈 =================
     QStackedWidget *stackedWidget = new QStackedWidget(this);
 
     // --- 页面 A: 用户管理面板 ---
@@ -86,19 +86,20 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     QHBoxLayout *btnLayout = new QHBoxLayout();
     m_btnAdd = new QPushButton("新增管理员/用户", userMgmtPage);
     m_btnReset = new QPushButton("强制重置密码", userMgmtPage);
+    m_btnPermissions = new QPushButton("分配权限", userMgmtPage);
     m_btnDelete = new QPushButton("永久删除用户", userMgmtPage);
     m_btnDelete->setObjectName("BtnDanger");
-    m_btnPermissions = new QPushButton("分配权限", userMgmtPage);
-    btnLayout->insertWidget(2, m_btnPermissions); // 插入到重置密码旁边
-    connect(m_btnPermissions, &QPushButton::clicked, this, &UserManagementDialog::onAssignPermissionsClicked);
 
     btnLayout->addWidget(m_btnAdd);
     btnLayout->addWidget(m_btnReset);
+    btnLayout->addWidget(m_btnPermissions);
     btnLayout->addStretch();
     btnLayout->addWidget(m_btnDelete);
 
     pageLayout->addLayout(btnLayout);
     stackedWidget->addWidget(userMgmtPage);
+
+    // --- 页面 B: 新用户注册审核面板 ---
     QWidget *reviewPage = new QWidget();
     QVBoxLayout *reviewLayout = new QVBoxLayout(reviewPage);
     reviewLayout->setContentsMargins(30, 30, 30, 30);
@@ -119,9 +120,10 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     reviewLayout->addWidget(m_pendingTable);
 
     QHBoxLayout *reviewBtnLayout = new QHBoxLayout();
-    m_btnApprove = new QPushButton("通过", reviewPage);
-    m_btnReject = new QPushButton("拒绝", reviewPage);
+    m_btnApprove = new QPushButton("✔️ 通过审核", reviewPage);
+    m_btnReject = new QPushButton("❌ 拒绝(删除)", reviewPage);
     m_btnReject->setObjectName("BtnDanger");
+
     reviewBtnLayout->addStretch();
     reviewBtnLayout->addWidget(m_btnApprove);
     reviewBtnLayout->addWidget(m_btnReject);
@@ -132,6 +134,7 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
     mainLayout->addWidget(sidebar);
     mainLayout->addWidget(stackedWidget);
 
+    // ================= 3. 全局样式表 =================
     this->setStyleSheet(R"(
         QDialog { background-color: #2E3440; border: 1px solid #4C566A; }
         QFrame#Sidebar { background-color: #3B4252; border-right: 1px solid #4C566A; }
@@ -140,7 +143,6 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
             padding: 12px; text-align: left; padding-left: 20px; font-size: 15px; border-radius: 4px;
         }
         QPushButton#SidebarBtn:hover { background-color: #434C5E; }
-        /* 左侧边栏选中时的冰蓝色高亮指示器 */
         QPushButton#SidebarBtnActive {
             background-color: #4C566A; color: #88C0D0; font-weight: bold;
             border-left: 4px solid #88C0D0; border-top-left-radius: 0; border-bottom-left-radius: 0;
@@ -166,26 +168,46 @@ UserManagementDialog::UserManagementDialog(QWidget *parent) : QDialog(parent) {
         QPushButton#BtnDanger:hover { background-color: #BF616A; color: #ECEFF4; }
     )");
 
+    // ================= 4. 侧边栏页面切换逻辑 =================
+    auto switchTab = [=](int index, QPushButton* activeBtn, QList<QPushButton*> allBtns) {
+        stackedWidget->setCurrentIndex(index);
+        for(auto btn : allBtns) {
+            btn->setObjectName(btn == activeBtn ? "SidebarBtnActive" : "SidebarBtn");
+            btn->style()->unpolish(btn); // 强制刷新 QSS
+            btn->style()->polish(btn);
+        }
+    };
+
+    connect(btnUserMgmt, &QPushButton::clicked, [=]() {
+        switchTab(0, btnUserMgmt, {btnUserMgmt, btnReview});
+        loadUsers();
+    });
+    connect(btnReview, &QPushButton::clicked, [=]() {
+        switchTab(1, btnReview, {btnUserMgmt, btnReview});
+        loadPendingUsers();
+    });
+
+    // ================= 5. 绑定所有操作信号 =================
     connect(m_btnAdd, &QPushButton::clicked, this, &UserManagementDialog::onAddUserClicked);
     connect(m_btnReset, &QPushButton::clicked, this, &UserManagementDialog::onResetPasswordClicked);
+    connect(m_btnPermissions, &QPushButton::clicked, this, &UserManagementDialog::onAssignPermissionsClicked);
     connect(m_btnDelete, &QPushButton::clicked, this, &UserManagementDialog::onDeleteUserClicked);
+    connect(m_btnApprove, &QPushButton::clicked, this, &UserManagementDialog::onApproveUserClicked);
+    connect(m_btnReject, &QPushButton::clicked, this, &UserManagementDialog::onRejectUserClicked);
     connect(btnWorkspace, &QPushButton::clicked, this, &UserManagementDialog::onEnterGraphWorkspace);
     connect(btnExit, &QPushButton::clicked, this, &QDialog::accept);
 
+    // 初始加载数据
     loadUsers();
 }
 
-
 void UserManagementDialog::onEnterGraphWorkspace() {
-    // 1. 弹出项目选择框
     ProjectSelectionDialog selectDialog(this);
     if (selectDialog.exec() == QDialog::Accepted) {
         int ontoId = selectDialog.getSelectedOntologyId();
         QString ontoName = selectDialog.getSelectedOntologyName();
 
         QApplication::setQuitOnLastWindowClosed(false);
-
-        // 2. 隐藏当前的后台管理仪表盘
         this->hide();
 
         User adminUser;
@@ -194,9 +216,7 @@ void UserManagementDialog::onEnterGraphWorkspace() {
         adminUser.canEdit = true;
         adminUser.canDelete = true;
 
-        // 传入 adminUser 作为第三个参数！
         MainWindow* w = new MainWindow(ontoId, ontoName, adminUser);
-
         w->setAttribute(Qt::WA_DeleteOnClose);
 
         connect(w, &MainWindow::destroyed, this, [this]() {
@@ -207,7 +227,6 @@ void UserManagementDialog::onEnterGraphWorkspace() {
         w->show();
     }
 }
-
 
 void UserManagementDialog::loadUsers() {
     m_table->setRowCount(0);
@@ -220,7 +239,6 @@ void UserManagementDialog::loadUsers() {
         m_table->setItem(i, 2, new QTableWidgetItem(users[i].isAdmin ? "管理员" : "普通用户"));
         m_table->setItem(i, 3, new QTableWidgetItem(users[i].password));
 
-        // 渲染权限展示
         QString perms = QString("%1 / %2 / %3")
                             .arg(users[i].canView ? "查" : "-")
                             .arg(users[i].canEdit ? "改" : "-")
@@ -371,4 +389,47 @@ void UserManagementDialog::onAssignPermissionsClicked() {
     });
 
     permDialog.exec();
+}
+
+// ================= 新增：审核模块相关的槽函数实现 =================
+
+void UserManagementDialog::loadPendingUsers() {
+    m_pendingTable->setRowCount(0);
+    QList<User> users = UserRepository::getPendingUsers();
+    for (int i = 0; i < users.size(); ++i) {
+        m_pendingTable->insertRow(i);
+        m_pendingTable->setItem(i, 0, new QTableWidgetItem(QString::number(users[i].id)));
+        m_pendingTable->setItem(i, 1, new QTableWidgetItem(users[i].username));
+    }
+}
+
+void UserManagementDialog::onApproveUserClicked() {
+    int row = m_pendingTable->currentRow();
+    if (row < 0) {
+        QMessageBox::warning(this, "提示", "请先在表格中选中一条申请！");
+        return;
+    }
+    int userId = m_pendingTable->item(row, 0)->text().toInt();
+
+    if (UserRepository::approveUser(userId)) {
+        QMessageBox::information(this, "成功", "已通过该用户的注册申请！");
+        loadPendingUsers(); // 刷新待审核列表
+        loadUsers();        // 刷新已通过用户列表，这样切回第一页就能看到新用户
+    }
+}
+
+void UserManagementDialog::onRejectUserClicked() {
+    int row = m_pendingTable->currentRow();
+    if (row < 0) {
+        QMessageBox::warning(this, "提示", "请先在表格中选中一条申请！");
+        return;
+    }
+    int userId = m_pendingTable->item(row, 0)->text().toInt();
+    QString userName = m_pendingTable->item(row, 1)->text();
+
+    if (QMessageBox::question(this, "确认拒绝", QString("确定要拒绝并删除 [%1] 的注册申请吗？").arg(userName)) == QMessageBox::Yes) {
+        if (UserRepository::rejectUser(userId)) {
+            loadPendingUsers();
+        }
+    }
 }
