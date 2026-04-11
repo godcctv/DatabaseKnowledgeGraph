@@ -41,13 +41,6 @@
                     <height>28</height>
                 </rect>
             </property>
-            <widget class="QMenu" name="menu_F">
-                <property name="title">
-                    <string>数据(&amp;D)</string>
-                </property>
-                <addaction name="actionImportData"/>
-                <addaction name="actionExportData"/>
-            </widget>
             <widget class="QMenu" name="menu_E">
                 <property name="title">
                     <string>编辑(&amp;E)</string>
@@ -55,29 +48,10 @@
                 <addaction name="actionAddNode"/>
                 <addaction name="actionDelete"/>
                 <addaction name="actionAddRelation"/>
-                <addaction name="action_6"/>
-                <addaction name="action_7"/>
             </widget>
-            <addaction name="menu_F"/>
             <addaction name="menu_E"/>
         </widget>
         <widget class="QStatusBar" name="statusbar"/>
-        <action name="actionImportData">
-            <property name="text">
-                <string>批量导入数据</string>
-            </property>
-            <property name="toolTip">
-                <string>将外部JSON数据(节点和关系)追加合并到当前画板中</string>
-            </property>
-        </action>
-        <action name="actionExportData">
-            <property name="text">
-                <string>批量导出数据</string>
-            </property>
-            <property name="toolTip">
-                <string>将当前画板中的所有节点和关系导出为JSON文件</string>
-            </property>
-        </action>
         <action name="actionAddNode">
             <property name="text">
                 <string>添加节点</string>
