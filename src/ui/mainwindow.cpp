@@ -717,7 +717,7 @@ void MainWindow::onQuerySingleNode() {
     QSet<int> addedNodes;
     addedNodes.insert(centerId);
 
-    int count = relatedEdges.size(); // 实际上可能是边数，这里近似处理
+    int count = relatedEdges.size();
     double radius = 200.0;
     double angleStep = (2 * M_PI) / (count > 0 ? count : 1);
     int currentIdx = 0;
@@ -734,35 +734,19 @@ void MainWindow::onQuerySingleNode() {
 
             drawNode(neighbor.id, neighbor.name, neighbor.nodeType, x, y);
             addedNodes.insert(neighborId);
-
-            // 手动画边 (不需要加入 m_layout)
-            // 这里为了简单，需重新查找 VisualNode 指针
-            // 实际项目中可以优化
             currentIdx++;
         }
     }
+    
+    for (const auto& edge : relatedEdges) {
+        VisualNode* src = qgraphicsitem_cast<VisualNode*>(findItemById(edge.sourceId));
+        VisualNode* dst = qgraphicsitem_cast<VisualNode*>(findItemById(edge.targetId));
 
-    // 重新遍历连接边
-    foreach(QGraphicsItem* item, m_scene->items()) {
-        if (item->type() == VisualNode::Type) {
-            VisualNode* vn = qgraphicsitem_cast<VisualNode*>(item);
-            if (vn->getId() != centerId) {
-                // 连接中心和它
-                VisualNode* centerV = nullptr;
-                // 找中心节点指针
-                foreach(QGraphicsItem* it, m_scene->items()) {
-                     if (it->type() == VisualNode::Type && qgraphicsitem_cast<VisualNode*>(it)->getId() == centerId) {
-                         centerV = qgraphicsitem_cast<VisualNode*>(it);
-                         break;
-                     }
-                }
-                if (centerV) {
-                    VisualEdge* edge = new VisualEdge(-1, centerId, vn->getId(), "related", centerV, vn);
-                    m_scene->addItem(edge);
-                    centerV->addEdge(edge, true);
-                    vn->addEdge(edge, false);
-                }
-            }
+        if (src && dst) {
+            VisualEdge* vEdge = new VisualEdge(edge.id, edge.sourceId, edge.targetId, edge.relationType, src, dst);
+            m_scene->addItem(vEdge);
+            src->addEdge(vEdge, true);
+            dst->addEdge(vEdge, false);
         }
     }
 
