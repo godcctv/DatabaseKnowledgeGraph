@@ -91,7 +91,7 @@ set(FORMS
 
 
 # 2. 定义可执行程序 (直接使用上面定义的列表)
-add_library(CoreLib STATIC ${CORE_SOURCES} ${HEADERS} ${FORMS})
+add_library(CoreLib STATIC ${SOURCES} ${HEADERS} ${FORMS})
 
 # 3. 链接 Qt 库
 target_link_libraries(CoreLib PUBLIC
