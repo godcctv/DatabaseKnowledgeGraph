@@ -85,7 +85,6 @@ set(FORMS
         ui/DashboardDialog.cpp
         ui/aitextimportdialog.h
         ui/aitextimportdialog.cpp
-        ../test/tst_main.cpp
 
 )
 

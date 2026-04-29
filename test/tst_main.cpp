@@ -1,5 +1,6 @@
 #include <QtTest/QtTest>
 #include <QDebug>
+#include <QSqlQuery>
 #include "database/NodeRepository.h"
 #include "business/QueryEngine.h"
 #include "model/GraphNode.h"
@@ -31,23 +32,40 @@ private slots:
     }
 
     void testNodeRepository() {
+        // ================== 1. 准备前置数据 ==================
+        // 为了满足外键约束，我们必须先在数据库里造一个临时的“本体 (Ontology)”
+        QSqlQuery query(DatabaseConnection::getDatabase());
+        // 插入一个测试用的本体项目
+        query.exec("INSERT INTO ontology (name, version) VALUES ('QTest测试专用图谱', '1.0')");
+        // 获取刚插入的这个合法本体的自增 ID
+        int validOntologyId = query.lastInsertId().toInt();
+        QVERIFY2(validOntologyId > 0, "前置本体数据准备失败！");
+
+        // ================== 2. 构造测试节点 ==================
         GraphNode testNode;
-        testNode.ontologyId = 99;
+        testNode.ontologyId = validOntologyId; // 【修改点】使用数据库真实存在的本体 ID
         testNode.nodeType = "测试节点";
         testNode.name = "QTest临时节点";
 
+        // ================== 3. 执行节点 CRUD 测试 ==================
         // 测试插入
         bool insertResult = NodeRepository::addNode(testNode);
         QVERIFY(insertResult == true);
 
-        // 测试查询
+        // 测试查询 (提取生成的节点 ID)
         int newId = testNode.id;
         GraphNode fetchedNode = NodeRepository::getNodeById(newId);
         QCOMPARE(fetchedNode.name, QString("QTest临时节点"));
 
-        // 测试删除 (记得删掉脏数据)
+        // 测试删除 (删掉临时节点)
         bool deleteResult = NodeRepository::deleteNode(newId);
         QVERIFY(deleteResult == true);
+
+        // ================== 4. 打扫战场 ==================
+        // 把一开始建的那个临时本体也顺手删掉，保持数据库干干净净
+        query.prepare("DELETE FROM ontology WHERE ontology_id = ?");
+        query.addBindValue(validOntologyId);
+        query.exec();
     }
 
     void testQueryEngineBFS() {
