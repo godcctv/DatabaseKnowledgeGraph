@@ -1,7 +1,5 @@
 # 1. 手动列出所有源文件
 set(SOURCES
-        main.cpp
-
         # 业务逻辑层
         business/GraphEditor.cpp
         business/QueryEngine.cpp
@@ -87,17 +85,22 @@ set(FORMS
         ui/DashboardDialog.cpp
         ui/aitextimportdialog.h
         ui/aitextimportdialog.cpp
+        ../test/tst_main.cpp
 
 )
 
+
 # 2. 定义可执行程序 (直接使用上面定义的列表)
-add_executable(DatabaseKnowledgeGraph ${SOURCES} ${HEADERS} ${FORMS})
+add_library(CoreLib STATIC ${CORE_SOURCES} ${HEADERS} ${FORMS})
 
 # 3. 链接 Qt 库
-target_link_libraries(DatabaseKnowledgeGraph PRIVATE
+target_link_libraries(CoreLib PUBLIC
         Qt5::Core
         Qt5::Gui
         Qt5::Widgets
         Qt5::Sql
         Qt5::Network
 )
+
+add_executable(DatabaseKnowledgeGraph main.cpp)
+target_link_libraries(DatabaseKnowledgeGraph PRIVATE CoreLib)
