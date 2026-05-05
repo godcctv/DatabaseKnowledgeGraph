@@ -123,3 +123,20 @@ Ontology OntologyRepository::getOntologyById(int id) {
     }
     return Ontology();
 }
+
+bool OntologyRepository::updateOntology(int id, const QString& newName, const QString& newDesc) {
+    QSqlDatabase db = DatabaseConnection::getDatabase();
+    if (!db.isOpen()) return false;
+
+    QSqlQuery query(db);
+    query.prepare("UPDATE ontology SET name = :name, description = :desc WHERE ontology_id = :id");
+    query.bindValue(":name", newName);
+    query.bindValue(":desc", newDesc);
+    query.bindValue(":id", id);
+
+    if (!query.exec()) {
+        qDebug() << "Update Ontology Error:" << query.lastError().text();
+        return false;
+    }
+    return true;
+}

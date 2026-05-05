@@ -89,13 +89,13 @@ void AITextImportDialog::onStartExtraction() {
     messages.append(userMsg);
 
     QJsonObject requestBody;
-    requestBody["model"] = "Qwen/Qwen2.5-7B-Instruct";
+    requestBody["model"] = "claude-opus-4-7";
     requestBody["messages"] = messages;
     requestBody["response_format"] = QJsonObject{{"type", "json_object"}};
 
     // 2. 核心修复：直接创建 Request 并设置 URL，去掉那个会误报的 isValid() 检查
     QNetworkRequest request;
-    request.setUrl(QUrl("https://api.siliconflow.cn/v1/chat/completions"));
+    request.setUrl(QUrl("https://api.cursorai.art/v1/chat/completions"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization", ("Bearer " + apiKey).toUtf8());
 

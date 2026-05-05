@@ -21,7 +21,7 @@ private slots:
     void onDeleteProject();
     void onOpenProject();
     void onItemDoubleClicked(QListWidgetItem* item);
-
+    void onRenameProject();
     void onImportProject();
     void onExportProject();
 
@@ -35,6 +35,7 @@ private:
     QPushButton* m_btnDelete;
     QPushButton* m_btnImport;
     QPushButton* m_btnExport;
+    QPushButton* m_btnRename;
 
     // 移除了动画相关组件 (overlay, timers, etc.)
 

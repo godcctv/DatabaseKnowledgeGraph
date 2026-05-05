@@ -79,7 +79,7 @@ void ProjectSelectionDialog::setupUI() {
 
     m_btnCreate = new QPushButton("新建项目", this);
     m_btnCreate->setToolTip("创建一个新的知识图谱项目");
-
+    m_btnRename = new QPushButton("重命名", this);
     m_btnDelete = new QPushButton("删除项目", this);
     m_btnDelete->setObjectName("BtnDanger");
 
@@ -91,6 +91,7 @@ void ProjectSelectionDialog::setupUI() {
     m_btnOpen->setDefault(true);
 
     btnLayout->addWidget(m_btnCreate);
+    btnLayout->addWidget(m_btnRename);
     btnLayout->addWidget(m_btnImport);
     btnLayout->addWidget(m_btnExport);
     btnLayout->addWidget(m_btnDelete);
@@ -101,6 +102,7 @@ void ProjectSelectionDialog::setupUI() {
 
     // 连接信号槽
     connect(m_btnCreate, &QPushButton::clicked, this, &ProjectSelectionDialog::onCreateProject);
+    connect(m_btnRename, &QPushButton::clicked, this, &ProjectSelectionDialog::onRenameProject);
     connect(m_btnDelete, &QPushButton::clicked, this, &ProjectSelectionDialog::onDeleteProject);
     connect(m_btnOpen, &QPushButton::clicked, this, &ProjectSelectionDialog::onOpenProject);
     connect(m_projectList, &QListWidget::itemDoubleClicked, this, &ProjectSelectionDialog::onItemDoubleClicked);
@@ -358,4 +360,32 @@ void ProjectSelectionDialog::onImportProject() {
     loadProjects();
     QMessageBox::information(this, "导入完成",
         QString("成功导入为新项目 [%1]！\n包含 %2 个节点，%3 条连线。").arg(finalName).arg(importedNodes).arg(importedEdges));
+}
+
+
+void ProjectSelectionDialog::onRenameProject() {
+    QListWidgetItem* item = m_projectList->currentItem();
+    if (!item) {
+        QMessageBox::warning(this, "提示", "请先选择要重命名的项目！");
+        return;
+    }
+
+    int id = item->data(Qt::UserRole).toInt();
+    QString oldName = item->data(Qt::UserRole + 1).toString();
+
+    // 弹窗输入新名称
+    bool ok;
+    QString newName = QInputDialog::getText(this, "重命名项目", "输入新的项目名称:", QLineEdit::Normal, oldName, &ok);
+
+    if (ok && !newName.trimmed().isEmpty() && newName != oldName) {
+        // 获取当前项目描述以保持不变
+        Ontology onto = OntologyRepository::getOntologyById(id);
+
+        if (OntologyRepository::updateOntology(id, newName.trimmed(), onto.description)) {
+            loadProjects(); // 刷新列表
+            QMessageBox::information(this, "成功", "项目重命名成功！");
+        } else {
+            QMessageBox::warning(this, "失败", "重命名失败，可能存在同名项目！");
+        }
+    }
 }

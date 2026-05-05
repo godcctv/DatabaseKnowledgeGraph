@@ -24,6 +24,7 @@ public:
 
     // 获取单个项目详情
     static Ontology getOntologyById(int id);
+    static bool updateOntology(int id, const QString& newName, const QString& newDesc);
 };
 
 #endif // ONTOLOGYREPOSITORY_H
