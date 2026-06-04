@@ -22,7 +22,7 @@ public:
     QList<GraphEdge> getRelatedRelationships(int nodeId);
 
     // --- 3. 属性查询 ---
-    QList<GraphNode> queryByAttribute(const QString& attrName, const QString& attrValue);
+    QList<GraphNode> queryByAttribute(int ontologyId, const QString& attrName, const QString& attrValue);
 
     // --- 4. 路径查询 ---
     QList<int> findPath(int sourceId, int targetId);

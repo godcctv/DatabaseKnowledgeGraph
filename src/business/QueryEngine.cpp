@@ -31,22 +31,45 @@ QList<GraphEdge> QueryEngine::getRelatedRelationships(int nodeId) {
     return result;
 }
 
-QList<GraphNode> QueryEngine::queryByAttribute(const QString& attrName, const QString& attrValue) {
+QList<GraphNode> QueryEngine::queryByAttribute(int ontologyId, const QString& attrName, const QString& attrValue) {
 
-    QList<GraphNode> allNodes = getAllNodes(1);
+    // 修复1: 使用传入的 ontologyId 替换硬编码的 1
+    QList<GraphNode> allNodes = getAllNodes(ontologyId);
     QList<GraphNode> result;
 
     for (const auto& node : allNodes) {
-        if (attrName == "name") {
-            if (node.name.contains(attrValue, Qt::CaseInsensitive)) {
-                result.append(node);
+        bool isMatch = false;
+
+        // 修复2: 扩展基础字段匹配
+        if (attrName == "name" && node.name.contains(attrValue, Qt::CaseInsensitive)) {
+            isMatch = true;
+        } else if (attrName == "type" && node.nodeType.contains(attrValue, Qt::CaseInsensitive)) {
+            isMatch = true;
+        } else if (attrName == "description" && node.description.contains(attrValue, Qt::CaseInsensitive)) {
+            isMatch = true;
+        }
+        // 修复3: 扩展 JSON 属性的搜索
+        else if (node.properties.contains(attrName)) {
+            QJsonValue jsonVal = node.properties.value(attrName);
+            // 将 JSON 值转换为字符串进行模糊匹配
+            QString valStr;
+            if (jsonVal.isString()) {
+                valStr = jsonVal.toString();
+            } else if (jsonVal.isDouble()) {
+                valStr = QString::number(jsonVal.toDouble());
+            } else if (jsonVal.isBool()) {
+                valStr = jsonVal.toBool() ? "true" : "false";
             }
-        } else if (attrName == "type") {
-            if (node.nodeType.contains(attrValue, Qt::CaseInsensitive)) {
-                result.append(node);
+
+            if (valStr.contains(attrValue, Qt::CaseInsensitive)) {
+                isMatch = true;
             }
         }
-        // 可以在这里扩展 JSON 属性的搜索
+
+        // 如果符合条件则加入结果集
+        if (isMatch) {
+            result.append(node);
+        }
     }
     return result;
 }

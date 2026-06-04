@@ -763,7 +763,7 @@ void MainWindow::onQueryAttribute() {
         QString name = dialog.getAttrName();
         QString value = dialog.getAttrValue();
 
-        QList<GraphNode> results = m_queryEngine->queryByAttribute(name, value);
+        QList<GraphNode> results = m_queryEngine->queryByAttribute(m_currentOntologyId, name, value);
 
         if (results.isEmpty()) {
             QMessageBox::information(this, "结果", "未找到匹配节点");
