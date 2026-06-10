@@ -25,7 +25,7 @@ public:
     QList<GraphNode> queryByAttribute(int ontologyId, const QString& attrName, const QString& attrValue);
 
     // --- 4. 路径查询 ---
-    QList<QList<int>> findAllPaths(int sourceId, int targetId, int maxDepth = 5);
+    QList<QList<int>> findAllPaths(int sourceId, int targetId, int maxDepth = 10);
 
 private:
     // 辅助：构建邻接表

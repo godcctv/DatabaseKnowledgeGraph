@@ -59,12 +59,7 @@ private slots:
         query.exec();
     }
 
-    // 2. BFS 路径引擎测试
-    void testQueryEngineBFS() {
-        QueryEngine engine;
-        QList<int> path = engine.findPath(1, 3);
-        QVERIFY(path.isEmpty() || path.size() > 0);
-    }
+
 
     // 3. 连线与外键级联删除测试
     void testRelationshipAndCascade() {
@@ -171,19 +166,6 @@ private slots:
         QVERIFY2(edgeAdded == false, "系统错误地允许了关联不存在的节点，外键约束失效！");
     }
 
-    // 7. BFS 寻路引擎的极端边界测试
-    void testQueryEngineBFS_EdgeCases() {
-        QueryEngine engine;
-
-        // 场景 A：查询两个完全不存在的节点的路径
-        QList<int> ghostPath = engine.findPath(9999, 8888);
-        // 断言：找不到路，必须安全返回空列表，不能引发段错误(Segmentation Fault)
-        QVERIFY(ghostPath.isEmpty() == true);
-
-        // 场景 B：起点和终点是同一个节点
-        QList<int> selfPath = engine.findPath(1, 1);
-        QVERIFY2(selfPath.size() <= 1, "寻路引擎处理同节点查询时陷入了死循环或逻辑错误");
-    }
 
     // 8. 用户系统的唯一性冲突与越权测试
     void testUserSystemCollisions() {

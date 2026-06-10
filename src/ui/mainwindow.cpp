@@ -7,6 +7,7 @@
 #include "QueryDialog.h"
 #include "DashboardDialog.h"
 #include "aitextimportdialog.h"
+#include "PathQueryDialog.h"
 #include "../database/OntologyRepository.h"
 #include "../database/RelationshipRepository.h"
 #include "../business/ForceDirectedLayout.h"
@@ -16,6 +17,7 @@
 #include <QGraphicsTextItem>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QInputDialog>
 #include <QMessageBox>
 #include <QRadialGradient>
 #include <QGraphicsDropShadowEffect>
@@ -804,68 +806,37 @@ void MainWindow::onQueryPath() {
     }
 
     if (nodes.size() != 2) {
-        QMessageBox::warning(this, "提示", "请先选中两个节点（起点和终点）");
+        QMessageBox::warning(this, "提示", "请按住 Ctrl 键在图中选中【两个】节点（起点和终点）！");
         return;
     }
 
     int startId = nodes[0]->getId();
     int endId = nodes[1]->getId();
 
-    QList<int> pathNodes = m_queryEngine->findPath(startId, endId);
+    // ================= [新增代码：让用户输入最大跳数] =================
+    bool ok;
+    // 参数说明：默认值=5, 最小值=1, 最大值=20 (可根据你的图谱规模调整上限), 步长=1
+    int maxDepth = QInputDialog::getInt(this, "路径查询参数",
+                                        "请输入允许的最大探索跳数\n(跳数越大耗时越长，建议 3~10):",
+                                        5, 1, 20, 1, &ok);
+    if (!ok) return; // 如果用户点击了“取消”按钮，则直接退出查询
+    // =============================================================
 
-    if (pathNodes.isEmpty()) {
-        QMessageBox::information(this, "结果", "无路径连接");
-        return;
-    }
+    // 1. 调用新的搜索算法，传入用户刚刚填写的 maxDepth
+    QList<QList<int>> paths = m_queryEngine->findAllPaths(startId, endId, maxDepth);
 
-    // 停止布局，清空
-    m_timer->stop();
-    m_scene->clear();
-    m_layout->clear();
+    // 2. 呼出交互面板展示这些路径
+    PathQueryDialog* dialog = new PathQueryDialog(this);
 
-    // 线性布局绘制路径
-    int x = 0;
-    VisualNode* prevVNode = nullptr;
+    // 注意这里也把 maxDepth 传进去了，用于在没有结果时动态提示用户
+    dialog->setPaths(paths, maxDepth);
 
-    for (int nodeId : pathNodes) {
-        GraphNode node = m_queryEngine->getNodeById(nodeId);
-        // 调用 drawNode 创建 VisualNode
-        drawNode(node.id, node.name, node.nodeType, x, 0);
+    // 3. 信号连接
+    connect(dialog, &PathQueryDialog::pathSelected, this, &MainWindow::highlightPath);
+    connect(dialog, &PathQueryDialog::dialogClosed, this, &MainWindow::clearPathHighlight);
 
-        // 获取刚刚创建的 VisualNode (为了连线)
-        VisualNode* currVNode = nullptr;
-        foreach(QGraphicsItem* item, m_scene->items()) {
-            VisualNode* vn = qgraphicsitem_cast<VisualNode*>(item);
-            if (vn && vn->getId() == nodeId) {
-                currVNode = vn;
-                break;
-            }
-        }
-
-        if (prevVNode && currVNode) {
-            QString actualRelationType = "未知";
-            QList<GraphEdge> relatedEdges = m_queryEngine->getRelatedRelationships(prevVNode->getId());
-
-            for (const auto& e : relatedEdges) {
-                if ((e.sourceId == prevVNode->getId() && e.targetId == currVNode->getId()) ||
-                    (e.sourceId == currVNode->getId() && e.targetId == prevVNode->getId())) {
-                    actualRelationType = e.relationType;
-                    break;
-                    }
-            }
-
-            VisualEdge* edge = new VisualEdge(-1, prevVNode->getId(), currVNode->getId(), actualRelationType, prevVNode, currVNode);
-            m_scene->addItem(edge);
-            prevVNode->addEdge(edge, true);
-            currVNode->addEdge(edge, false);
-        }
-
-        prevVNode = currVNode;
-        x += 200; // 间距
-    }
-
-    ui->statusbar->showMessage("路径查询完成");
-    ui->graphicsView->centerOn(x/2, 0);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->show();
 }
 
 // 辅助绘图函数
@@ -1180,16 +1151,12 @@ void MainWindow::highlightPath(const QList<int>& pathNodeIds) {
 void MainWindow::openPathQueryDialog() {
     PathQueryDialog* dialog = new PathQueryDialog(this);
 
-    // 连接 1: UI 请求查找 -> 调用你修改后的 QueryEngine -> 将结果返还给 UI
-    connect(dialog, &PathQueryDialog::requestFindPaths, this, [=](int src, int tgt){
-        QList<QList<int>> paths = m_queryEngine->findAllPaths(src, tgt, 5);
-        dialog->setPaths(paths);
-    });
 
-    // 连接 2: UI 选中某条路径 -> 调用 MainWindow 渲染
+
+    // 连接 : UI 选中某条路径 -> 调用 MainWindow 渲染
     connect(dialog, &PathQueryDialog::pathSelected, this, &MainWindow::highlightPath);
 
-    // 连接 3: UI 关闭 -> 清除所有高亮恢复正常
+    // 连接 : UI 关闭 -> 清除所有高亮恢复正常
     connect(dialog, &PathQueryDialog::dialogClosed, this, &MainWindow::clearPathHighlight);
 
     dialog->setAttribute(Qt::WA_DeleteOnClose);

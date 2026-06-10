@@ -30,12 +30,14 @@ public:
 
         connect(pathListWidget, &QListWidget::currentRowChanged, this, &PathQueryDialog::onPathSelected);
     }
-
-    void setPaths(const QList<QList<int>>& paths) {
+    
+    void setPaths(const QList<QList<int>>& paths, int maxDepth) {
         m_paths = paths;
         pathListWidget->clear();
+
         if (paths.isEmpty()) {
-            pathListWidget->addItem("未找到连通路径 (当前限制最大5跳)");
+            // [修改：动态显示当前的跳数限制]
+            pathListWidget->addItem(QString("未找到连通路径 (当前限制最大 %1 跳)").arg(maxDepth));
         } else {
             for (int i = 0; i < paths.size(); ++i) {
                 pathListWidget->addItem(QString("路径 %1 (%2 跳)").arg(i + 1).arg(paths[i].size() - 1));
