@@ -25,6 +25,9 @@ public:
 
     int getEdgeCount() const { return m_edges.size(); }
     int getMass() const;
+
+    void setHighlighted(bool highlighted);
+    void setDimmed(bool dimmed);
 protected:
     // 当节点发生改变时，这个函数会被自动调用
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
@@ -34,7 +37,8 @@ private:
     int m_id;
     QString m_name;
     QString m_nodeType;
-
+    bool m_highlighted = false;
+    bool m_dimmed = false;
     struct EdgeInfo {
         QGraphicsLineItem* line;
         bool isSource; // true=我是起点, false=我是终点

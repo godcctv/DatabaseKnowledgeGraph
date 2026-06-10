@@ -1100,3 +1100,98 @@ void MainWindow::handleAIExtractedData(QJsonArray aiNodes, QJsonArray aiEdges) {
     onQueryFullGraph();
     ui->statusbar->showMessage(QString("AI 导入完成：新增 %1 个节点，%2 条关系").arg(newNodesCount).arg(newEdgesCount), 5000);
 }
+
+void MainWindow::clearPathHighlight() {
+    // 遍历场景中的所有图元，恢复默认状态
+    foreach (QGraphicsItem* item, m_scene->items()) {
+        if (item->type() == VisualNode::Type) {
+            VisualNode* node = qgraphicsitem_cast<VisualNode*>(item);
+            if (node) {
+                node->setHighlighted(false);
+                node->setDimmed(false);
+            }
+        } else if (item->type() == VisualEdge::Type) {
+            VisualEdge* edge = qgraphicsitem_cast<VisualEdge*>(item);
+            if (edge) {
+                edge->setHighlighted(false);
+                edge->setDimmed(false);
+            }
+        }
+    }
+}
+
+
+void MainWindow::highlightPath(const QList<int>& pathNodeIds) {
+    if (pathNodeIds.isEmpty()) return;
+
+    // 1. 全局暗化 (开启焦点模式)
+    foreach (QGraphicsItem* item, m_scene->items()) {
+        if (item->type() == VisualNode::Type) {
+            VisualNode* node = qgraphicsitem_cast<VisualNode*>(item);
+            if (node) {
+                node->setHighlighted(false);
+                node->setDimmed(true);
+            }
+        } else if (item->type() == VisualEdge::Type) {
+            VisualEdge* edge = qgraphicsitem_cast<VisualEdge*>(item);
+            if (edge) {
+                edge->setHighlighted(false);
+                edge->setDimmed(true);
+            }
+        }
+    }
+
+    // 2. 点亮路径上的节点
+    foreach (QGraphicsItem* item, m_scene->items()) {
+        if (item->type() == VisualNode::Type) {
+            VisualNode* node = qgraphicsitem_cast<VisualNode*>(item);
+            if (node && pathNodeIds.contains(node->getId())) {
+                node->setHighlighted(true);
+                node->setDimmed(false); // 取消暗化
+            }
+        }
+    }
+
+    // 3. 点亮路径上的连线
+    for (int i = 0; i < pathNodeIds.size() - 1; ++i) {
+        int srcId = pathNodeIds[i];
+        int tgtId = pathNodeIds[i+1];
+
+        foreach (QGraphicsItem* item, m_scene->items()) {
+            if (item->type() == VisualEdge::Type) {
+                VisualEdge* edge = qgraphicsitem_cast<VisualEdge*>(item);
+                if (edge) {
+                    int eSrcId = edge->getSourceNode()->getId();
+                    int eDestId = edge->getDestNode()->getId();
+                    // 匹配无向连接
+                    if ((eSrcId == srcId && eDestId == tgtId) ||
+                        (eSrcId == tgtId && eDestId == srcId)) {
+                        edge->setHighlighted(true);
+                        edge->setDimmed(false);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// 打开查询面板并连接信号
+void MainWindow::openPathQueryDialog() {
+    PathQueryDialog* dialog = new PathQueryDialog(this);
+
+    // 连接 1: UI 请求查找 -> 调用你修改后的 QueryEngine -> 将结果返还给 UI
+    connect(dialog, &PathQueryDialog::requestFindPaths, this, [=](int src, int tgt){
+        QList<QList<int>> paths = m_queryEngine->findAllPaths(src, tgt, 5);
+        dialog->setPaths(paths);
+    });
+
+    // 连接 2: UI 选中某条路径 -> 调用 MainWindow 渲染
+    connect(dialog, &PathQueryDialog::pathSelected, this, &MainWindow::highlightPath);
+
+    // 连接 3: UI 关闭 -> 清除所有高亮恢复正常
+    connect(dialog, &PathQueryDialog::dialogClosed, this, &MainWindow::clearPathHighlight);
+
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->show(); // 使用 show() 进行非模态展示，允许用户一边看路径一边拖拽图元
+}

@@ -74,52 +74,58 @@ QList<GraphNode> QueryEngine::queryByAttribute(int ontologyId, const QString& at
     return result;
 }
 
-QList<int> QueryEngine::findPath(int sourceId, int targetId) {
-    QList<int> path;
-    if (sourceId == targetId) return path;
+QList<QList<int>> QueryEngine::findAllPaths(int sourceId, int targetId, int maxDepth) {
+    QList<QList<int>> allPaths;
+    if (sourceId == targetId) return allPaths;
 
+    // 获取当前本体的所有关系来构建邻接表
     GraphNode node = getNodeById(sourceId);
     QList<GraphEdge> edges = getAllRelationships(node.ontologyId);
     QMap<int, QList<int>> adj;
+
     for (const auto& edge : edges) {
+        // 构建无向图视角的邻接表
         adj[edge.sourceId].append(edge.targetId);
-        adj[edge.targetId].append(edge.sourceId); // 无向图视角的路径
+        adj[edge.targetId].append(edge.sourceId);
     }
 
-    // 2. BFS
-    QQueue<int> queue;
-    queue.enqueue(sourceId);
+    QList<int> currentPath;
     QSet<int> visited;
-    visited.insert(sourceId);
-    QMap<int, int> predecessors; // 记录前驱节点
 
-    bool found = false;
-    while (!queue.isEmpty()) {
-        int current = queue.dequeue();
-        if (current == targetId) {
-            found = true;
-            break;
-        }
+    // 调用深度优先搜索寻找所有路径
+    dfsFindPaths(sourceId, targetId, adj, currentPath, visited, allPaths, maxDepth);
 
+    return allPaths;
+}
+
+// DFS 回溯实现
+void QueryEngine::dfsFindPaths(int current, int targetId,
+                               QMap<int, QList<int>>& adj,
+                               QList<int>& currentPath,
+                               QSet<int>& visited,
+                               QList<QList<int>>& allPaths,
+                               int maxDepth) {
+    // 将当前节点加入路径并标记为已访问
+    currentPath.append(current);
+    visited.insert(current);
+
+    // 如果到达目标节点，保存这条路径
+    if (current == targetId) {
+        allPaths.append(currentPath);
+    }
+    // 如果还没到达目标且未超过最大深度，继续向下搜索
+    // 注意：currentPath.size() - 1 代表当前的跳数（边数）
+    else if (currentPath.size() - 1 < maxDepth) {
         if (adj.contains(current)) {
             for (int neighbor : adj[current]) {
                 if (!visited.contains(neighbor)) {
-                    visited.insert(neighbor);
-                    predecessors[neighbor] = current;
-                    queue.enqueue(neighbor);
+                    dfsFindPaths(neighbor, targetId, adj, currentPath, visited, allPaths, maxDepth);
                 }
             }
         }
     }
 
-    // 3. 回溯路径
-    if (found) {
-        int curr = targetId;
-        path.prepend(curr);
-        while (curr != sourceId) {
-            curr = predecessors[curr];
-            path.prepend(curr);
-        }
-    }
-    return path;
+    // 回溯：撤销当前节点的访问状态，以便从其他分支再次访问
+    currentPath.removeLast();
+    visited.remove(current);
 }

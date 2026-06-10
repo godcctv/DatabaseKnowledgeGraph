@@ -85,6 +85,7 @@ set(FORMS
         ui/DashboardDialog.cpp
         ui/aitextimportdialog.h
         ui/aitextimportdialog.cpp
+        ui/PathQueryDialog.h
 
 )
 

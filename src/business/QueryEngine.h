@@ -25,11 +25,18 @@ public:
     QList<GraphNode> queryByAttribute(int ontologyId, const QString& attrName, const QString& attrValue);
 
     // --- 4. 路径查询 ---
-    QList<int> findPath(int sourceId, int targetId);
+    QList<QList<int>> findAllPaths(int sourceId, int targetId, int maxDepth = 5);
 
 private:
     // 辅助：构建邻接表
     QMap<int, QList<int>> buildAdjacencyList();
+
+    void dfsFindPaths(int current, int targetId,
+                      QMap<int, QList<int>>& adj,
+                      QList<int>& currentPath,
+                      QSet<int>& visited,
+                      QList<QList<int>>& allPaths,
+                      int maxDepth);
 };
 
 #endif // QUERYENGINE_H

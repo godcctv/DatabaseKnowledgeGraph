@@ -18,6 +18,8 @@ public:
 
     int getId() const { return m_id; }
     int type() const override { return Type; }
+    void setHighlighted(bool highlighted);
+    void setDimmed(bool dimmed);
 
     QRectF boundingRect() const override;
     // 更新线条位置
@@ -47,6 +49,8 @@ private:
     int m_targetId;
     QString m_relationType;
 
+    bool m_highlighted = false;
+    bool m_dimmed = false;
     VisualNode* m_srcNode;
     VisualNode* m_destNode;
 

@@ -67,6 +67,11 @@ QPainterPath VisualEdge::shape() const {
 void VisualEdge::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) {
     if (!m_srcNode || !m_destNode) return;
     if (m_srcNode->collidesWithItem(m_destNode)) return; // 如果球重叠了就不画线
+    if (m_dimmed && !m_highlighted) {
+        painter->setOpacity(0.15);
+    } else {
+        painter->setOpacity(1.0);
+    }
 
     QPointF srcPos = m_srcNode->scenePos();
     QPointF dstPos = m_destNode->scenePos();
@@ -98,9 +103,17 @@ void VisualEdge::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
 
     QColor normalColor("#4C566A");  // 默认暗蓝灰色
     QColor selectedColor("#88C0D0"); // 选中时冰蓝色
+    QColor highlightColor("#EBCB8B");
 
-    QPen linePen = isSelected() ? QPen(selectedColor, 2.5, Qt::SolidLine, Qt::RoundCap)
-                                : QPen(normalColor, 1.5, Qt::SolidLine, Qt::RoundCap);
+    QPen linePen;
+    if (m_highlighted) {
+        linePen = QPen(highlightColor, 3.5, Qt::SolidLine, Qt::RoundCap); // 高亮加粗
+    } else if (isSelected()) {
+        linePen = QPen(selectedColor, 2.5, Qt::SolidLine, Qt::RoundCap);
+    } else {
+        linePen = QPen(normalColor, 1.5, Qt::SolidLine, Qt::RoundCap);
+    }
+
     painter->setPen(linePen);
     painter->setBrush(Qt::NoBrush);
     painter->drawPath(path);
@@ -203,4 +216,20 @@ QRectF VisualEdge::boundingRect() const {
     }
 
     return rect;
+}
+
+
+void VisualEdge::setHighlighted(bool highlighted) {
+    if (m_highlighted != highlighted) {
+        m_highlighted = highlighted;
+        setZValue(highlighted ? 2 : -1); // 高亮时把线提到最上层
+        update();
+    }
+}
+
+void VisualEdge::setDimmed(bool dimmed) {
+    if (m_dimmed != dimmed) {
+        m_dimmed = dimmed;
+        update();
+    }
 }

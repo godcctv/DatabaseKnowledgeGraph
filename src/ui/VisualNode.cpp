@@ -107,6 +107,11 @@ void VisualNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
     Q_UNUSED(option);
     Q_UNUSED(widget);
     painter->setRenderHint(QPainter::Antialiasing);
+    if (m_dimmed && !m_highlighted) {
+        painter->setOpacity(0.15); // 未在路径上的节点变暗
+    } else {
+        painter->setOpacity(1.0);
+    }
 
     // 动态调整大小
     qreal coreRadius = 20 + getEdgeCount() * 1.5;
@@ -126,8 +131,16 @@ void VisualNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
 
     // ========== 1. 扁平化节点本体 ==========
     painter->setBrush(baseColor);
-    painter->setPen(QPen(QColor("#ECEFF4"), 2)); // 白灰色实线描边
+
+    if (m_highlighted) {
+        // 路径高亮时，使用醒目的黄色/金色边框加粗
+        painter->setPen(QPen(QColor("#EBCB8B"), 4, Qt::SolidLine));
+    } else {
+        painter->setPen(QPen(QColor("#ECEFF4"), 2)); // 默认白灰色
+    }
+
     painter->drawEllipse(QPointF(0, 0), coreRadius, coreRadius);
+
 
     // ========== 2. 选中状态指示器 ==========
     if (isSelected()) {
@@ -184,4 +197,18 @@ void VisualNode::updateData(QString newName, QString newType) {
         }
     }
     update(); // 重绘
+}
+
+void VisualNode::setHighlighted(bool highlighted) {
+    if (m_highlighted != highlighted) {
+        m_highlighted = highlighted;
+        update();
+    }
+}
+
+void VisualNode::setDimmed(bool dimmed) {
+    if (m_dimmed != dimmed) {
+        m_dimmed = dimmed;
+        update();
+    }
 }

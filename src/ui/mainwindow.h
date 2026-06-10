@@ -48,6 +48,10 @@ protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
+    void clearPathHighlight();
+    void highlightPath(const QList<int>& pathNodeIds);
+
+    void openPathQueryDialog();
     void updateStatusBar();
     void onActionAddNodeTriggered();
     void onNodeAdded(const GraphNode& node);
